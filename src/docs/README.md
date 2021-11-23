@@ -1,12 +1,12 @@
 ![Build](https://github.com/arturopala/validator/workflows/Build/badge.svg) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.arturopala/validator_2.13/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.arturopala/validator_2.13)
 [![Scala.js](https://www.scala-js.org/assets/badges/scalajs-1.5.0.svg)](https://www.scala-js.org)
 
-Validate
+Validator
 ===
 
 This is a micro-library for Scala
 
-    "com.github.arturopala" %% "validate" % "@VERSION@"
+    "com.github.arturopala" %% "validator" % "@VERSION@"
 
 Cross-compiles to Scala versions @SUPPORTED_SCALA_VERSIONS@, 
 and ScalaJS version `@SCALA_JS_VERSION@`, and ScalaNative version `@SCALA_NATIVE_VERSION@`.

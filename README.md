@@ -1,12 +1,12 @@
 ![Build](https://github.com/arturopala/validator/workflows/Build/badge.svg) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.arturopala/validator_2.13/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.arturopala/validator_2.13)
 [![Scala.js](https://www.scala-js.org/assets/badges/scalajs-1.5.0.svg)](https://www.scala-js.org)
 
-Validate
+Validator
 ===
 
 This is a micro-library for Scala
 
-    "com.github.arturopala" %% "validate" % "0.1.0"
+    "com.github.arturopala" %% "validator" % "0.1.0"
 
 Cross-compiles to Scala versions `2.13.6`, `2.12.15`, `3.1.0`, 
 and ScalaJS version `1.7.0`, and ScalaNative version `0.4.0`.
@@ -22,7 +22,7 @@ import com.github.arturopala.validator.Validator._
 
 val validateIsEven: Validate[Int] = 
     check[Int](_ % 2 == 0, "must be even integer")
-// validateIsEven: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$7914/253890261@7527b8d6
+// validateIsEven: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$7993/1505404481@1bb06f1a
 
 validateIsEven(2).isValid
 // res0: Boolean = true
@@ -33,7 +33,7 @@ validateIsEven(1).errors
 
 val validateIsPositive: Validate[Int] = 
     check[Int](_ > 0, "must be positive integer")
-// validateIsPositive: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$7914/253890261@647dd75b
+// validateIsPositive: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$7993/1505404481@1a8d9964
   
 validateIsPositive(1).isValid  
 // res3: Boolean = true  
@@ -46,7 +46,7 @@ validateIsPositive(0).isInvalid
 
 val validateIsEvenAndPositive: Validate[Int] = 
     all(validateIsEven, validateIsPositive)
-// validateIsEvenAndPositive: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$7917/1756804697@473a50fb
+// validateIsEvenAndPositive: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$7996/1399432093@109d4d6b
 
 validateIsEvenAndPositive(2).isValid  
 // res7: Boolean = true  
@@ -65,7 +65,7 @@ validateIsEvenAndPositive(0).isInvalid
 
 val validateIsEvenOrPositive: Validate[Int] = 
     any(validateIsEven, validateIsPositive)
-// validateIsEvenOrPositive: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$7922/763818030@1b26afaf
+// validateIsEvenOrPositive: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$8001/1394962679@4c07fce9
 
 validateIsEvenOrPositive(2).isValid   
 // res13: Boolean = true   

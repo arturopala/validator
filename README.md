@@ -1,6 +1,8 @@
 [![Build and test](https://github.com/arturopala/validator/actions/workflows/build.yml/badge.svg)](https://github.com/arturopala/validator/actions/workflows/build.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.arturopala/validator_2.13.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.github.arturopala%22%20AND%20a:%22validator_2.13%22)
 [![Scala.js](https://www.scala-js.org/assets/badges/scalajs-1.7.0.svg)](https://www.scala-js.org)
+![Code size](https://img.shields.io/github/languages/code-size/arturopala/validator)
+![GitHub](https://img.shields.io/github/license/arturopala/validator)
 
 Validator
 ===

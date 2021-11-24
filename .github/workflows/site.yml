@@ -32,5 +32,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "> Publish GitHub Pages"
-          sbt makeSite publishToGitHubPages   
+          sbt makeSite ghpagesPushSite   
     

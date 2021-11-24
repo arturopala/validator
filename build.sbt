@@ -66,9 +66,12 @@ crossScalaVersions := List()
 
 lazy val jVMSettings = List(
   crossScalaVersions := allScalaVersions,
-  gitHubPagesOrgName := githubUserName,
-  gitHubPagesRepoName := githubRepoName,
-  gitHubPagesSiteDir := baseDirectory.value / "target" / "site"
+  git.remoteRepo := s"git@github.com:$githubUserName/$githubRepoName.git",
+  ghpagesNoJekyll := true,
+  excludeFilter in ghpagesCleanSite :=
+    new FileFilter {
+      def accept(f: File) = (ghpagesRepository.value / "index.html").getCanonicalPath == f.getCanonicalPath
+    }
 )
 
 lazy val jSSettings = List(
@@ -99,7 +102,7 @@ lazy val root = crossProject(JSPlatform, JVMPlatform, NativePlatform)
   .jsSettings(jSSettings)
   .nativeSettings(nativeSettings)
   .jvmConfigure(
-    _.enablePlugins(AutomateHeaderPlugin, GitHubPagesPlugin, SiteScaladocPlugin)
+    _.enablePlugins(AutomateHeaderPlugin, GhpagesPlugin, SiteScaladocPlugin)
   )
 
 lazy val rootJVM = root.jvm

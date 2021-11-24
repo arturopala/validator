@@ -44,6 +44,47 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     }
   }
 
+  property("Validator.all(with error prefix) combines provided validators to verify if all checks passes") {
+    val nonEmptyStringValidator = Validator.check[String](_.nonEmpty, "string must be non-empty")
+    val emptyStringValidator = Validator.check[String](_.isEmpty(), "string must be empty")
+    val validate: Validate[String] =
+      Validator.all("foo: ", nonEmptyStringValidator, emptyStringValidator)
+
+    forAll { (string: String) =>
+      Prop.all(
+        emptyStringValidator("").isValid,
+        ("foo: " @: nonEmptyStringValidator)("").errorString == Some("foo: string must be non-empty"),
+        (emptyStringValidator.withPrefix("@ "))(s"a$string").errorString == Some("@ string must be empty"),
+        nonEmptyStringValidator(s"a$string").isValid,
+        Validator.all("foo_", nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
+          Some(if (string.isEmpty) "foo_string must be non-empty" else "foo_string must be empty"),
+        Validator.all("bar/", nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
+          Some(if (string.isEmpty) "bar/string must be non-empty" else "bar/string must be empty"),
+        validate(string).errorString ==
+          Some(if (string.isEmpty) "foo: string must be non-empty" else "foo: string must be empty")
+      )
+    }
+  }
+
+  property("Validator.all(with calculated error prefix) combines provided validators to verify if all checks passes") {
+    val nonEmptyStringValidator = Validator.check[String](_.nonEmpty, "string must be non-empty")
+    val emptyStringValidator = Validator.check[String](_.isEmpty(), "string must be empty")
+
+    val calculatePrefix: String => String = s => s"${s.take(1)}: "
+
+    forAll { (string: String) =>
+      val f = string.take(1)
+      Prop.all(
+        Validator.all(calculatePrefix, nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
+          Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty"),
+        Validator.all(calculatePrefix, nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
+          Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty"),
+        Validator.all(calculatePrefix, nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
+          Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty")
+      )
+    }
+  }
+
   property("Validator.any combines provided validators to verify if any of the checks passes") {
     val hasDigitValidator = Validator.check[String](_.exists(_.isDigit), "some characters must be digits")
     val hasLowerCaseValidator =
@@ -78,6 +119,123 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     }
   }
 
+  property("Validator.any(with error prefix) combines provided validators to verify if any of the checks passes") {
+    val hasDigitValidator = Validator.check[String](_.exists(_.isDigit), "some characters must be digits")
+    val hasLowerCaseValidator =
+      Validator.check[String](_.exists(_.isLower), "some characters must be lower case")
+
+    forAllNoShrink(Gen.alphaChar, Gen.numChar) { (a: Char, d: Char) =>
+      (a.isLower) ==>
+        Prop.all(
+          Validator.any("foo_", hasDigitValidator, hasLowerCaseValidator).apply(s"$a-$d").isValid,
+          Validator.any("foo_", hasDigitValidator, hasLowerCaseValidator).apply(s"$a-$a").isValid,
+          Validator.any("foo_", hasDigitValidator, hasLowerCaseValidator).apply(s"$d-$d").isValid,
+          Validator.any("foo_", hasDigitValidator, hasLowerCaseValidator).apply(s"$d-$a").isValid,
+          Validator
+            .any("foo_", hasDigitValidator, hasLowerCaseValidator)
+            .apply(s"${a.toUpper}" * d.toInt)
+            .errorString(", ") == Some(
+            "foo_some characters must be digits, foo_some characters must be lower case"
+          )
+        )
+    }
+  }
+
+  property(
+    "Validator.any(with calculated error prefix) combines provided validators to verify if any of the checks passes"
+  ) {
+    val hasDigitValidator = Validator.check[String](_.exists(_.isDigit), "some characters must be digits")
+    val hasLowerCaseValidator =
+      Validator.check[String](_.exists(_.isLower), "some characters must be lower case")
+
+    val calculatePrefix: String => String = s => s"${s.take(1)}_"
+
+    forAllNoShrink(Gen.alphaChar, Gen.numChar) { (a: Char, d: Char) =>
+      (a.isLower) ==>
+        Prop.all(
+          Validator
+            .any(calculatePrefix, hasDigitValidator, hasLowerCaseValidator)
+            .apply(s"${a.toUpper}" * d.toInt)
+            .errorString(", ") == Some(
+            s"${a.toUpper}_some characters must be digits, ${a.toUpper}_some characters must be lower case"
+          )
+        )
+    }
+  }
+
+  test("Validator.conditionally runs the test and follows with either first or second check") {
+    val validateOnlyDigits = Validator.check[String](_.forall(_.isDigit), "all characters must be digits")
+    val validateNonEmpty = Validator.check[String](_.nonEmpty, "must be non empty string")
+    def validateLength(length: Int) = Validator.check[String](_.length() == length, s"must have $length characters")
+    val validateAllUpperCase = Validator.check[String](_.forall(_.isUpper), "all characters must be upper case")
+    val validate: Validate[String] =
+      Validator.conditionally[String](_.headOption.contains('0'))(
+        validateLength(3) & validateOnlyDigits,
+        validateNonEmpty & validateAllUpperCase
+      )
+
+    assert(validate("A").isValid)
+    assert(validate("AZ").isValid)
+    assert(validate("ABC").isValid)
+    assert(validate("000").isValid)
+    assert(validate("012").isValid)
+    assert(validate("").errorString == Some("must be non empty string"))
+    assert(validate("Az").errorString == Some("all characters must be upper case"))
+    assert(validate("az").errorString == Some("all characters must be upper case"))
+    assert(validate("a").errorString == Some("all characters must be upper case"))
+    assert(validate("0").errorString == Some("must have 3 characters"))
+    assert(validate("00").errorString == Some("must have 3 characters"))
+    assert(validate("123").errorString == Some("all characters must be upper case"))
+    assert(validate("0000").errorString == Some("must have 3 characters"))
+  }
+
+  test("Validator.whenTrue runs the test and if true then follows with the next check") {
+    val validateOnlyDigits = Validator.check[String](_.forall(_.isDigit), "all characters must be digits")
+    def validateLength(length: Int) = Validator.check[String](_.length() == length, s"must have $length characters")
+    val validate: Validate[String] =
+      Validator.whenTrue[String](_.headOption.contains('0'))(validateLength(3) & validateOnlyDigits)
+
+    assert(validate("000").isValid)
+    assert(validate("012").isValid)
+    assert(validate("A").isValid)
+    assert(validate("AZ").isValid)
+    assert(validate("ABC").isValid)
+    assert(validate("").isValid)
+    assert(validate("Az").isValid)
+    assert(validate("az").isValid)
+    assert(validate("a").isValid)
+    assert(validate("123").isValid)
+    assert(validate("0").errorString == Some("must have 3 characters"))
+    assert(validate("00").errorString == Some("must have 3 characters"))
+    assert(validate("0000").errorString == Some("must have 3 characters"))
+  }
+
+  test("Validator.whenFalse runs the test and if false then tries the next check") {
+    val validateNonEmpty = Validator.check[String](_.nonEmpty, "must be non empty string")
+    val validateAllUpperCase = Validator.check[String](_.forall(_.isUpper), "all characters must be upper case")
+    val validate: Validate[String] =
+      Validator.whenFalse[String](_.headOption.contains('0'))(validateNonEmpty & validateAllUpperCase)
+
+    assert(validate("A").isValid)
+    assert(validate("AZ").isValid)
+    assert(validate("ABC").isValid)
+    assert(validate("0").isValid)
+    assert(validate("00").isValid)
+    assert(validate("000").isValid)
+    assert(validate("0000").isValid)
+    assert(validate("0abc").isValid)
+    assert(validate("012").isValid)
+    assert(validate("0123").isValid)
+    assert(validate("").errorString == Some("must be non empty string"))
+    assert(validate("Az").errorString == Some("all characters must be upper case"))
+    assert(validate("az").errorString == Some("all characters must be upper case"))
+    assert(validate("a").errorString == Some("all characters must be upper case"))
+    assert(validate("1").errorString == Some("all characters must be upper case"))
+    assert(validate("12").errorString == Some("all characters must be upper case"))
+    assert(validate("123").errorString == Some("all characters must be upper case"))
+    assert(validate("1ABC").errorString == Some("all characters must be upper case"))
+  }
+
   test("Validator.when runs the guard check and follows with either first or second check") {
     val validateStartsWithZero =
       Validator.check[String](_.headOption.contains('0'), "first character must be a Zero")
@@ -106,7 +264,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     assert(validate("0000").errorString == Some("must have 3 characters"))
   }
 
-  test("Validator.whenValid runs the guard check and if valid follows with the next check") {
+  test("Validator.whenValid runs the guard check and if valid then follows with the next check") {
     val validateStartsWithZero =
       Validator.check[String](_.headOption.contains('0'), "first character must be a Zero")
     val validateOnlyDigits = Validator.check[String](_.forall(_.isDigit), "all characters must be digits")

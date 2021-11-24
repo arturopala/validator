@@ -20,7 +20,7 @@ import cats.Semigroup
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 
-/** Simple validator abstraction using Cats [[Validated]]. */
+/** Simpler validator abstraction using Cats Validated https://typelevel.org/cats/datatypes/validated.html. */
 object Validator {
 
   import Implicits._
@@ -41,6 +41,18 @@ object Validator {
   /** Succeed only if all constraints are valid. */
   def all[T](constraints: Validate[T]*): Validate[T] = apply(constraints: _*)
 
+  /** Succeed only if all constraints are valid, otherwise prepend errorPrefix. */
+  def all[T](errorPrefix: String, constraints: Validate[T]*): Validate[T] =
+    (entity: T) => all(constraints: _*)(entity).leftMap(_.map(e => s"$errorPrefix$e"))
+
+  /** Succeed only if all constraints are valid, otherwise prepend calculated errorPrefix. */
+  def all[T](errorPrefix: T => String, constraints: Validate[T]*): Validate[T] =
+    (entity: T) =>
+      all(constraints: _*)(entity).leftMap { r =>
+        val prefix = errorPrefix(entity)
+        r.map(e => s"$prefix$e")
+      }
+
   /** Succeed if any of the constraints is valid. */
   def any[T](constraints: Validate[T]*): Validate[T] =
     (entity: T) =>
@@ -51,7 +63,39 @@ object Validator {
         else results.reduce((a, b) => a.combine(b))
       }
 
-  /** Depending on the guard constraint result follow checks with either first or second constraint. */
+  /** Succeed if any of the constraints is valid, otherwise prepend errorPrefix. */
+  def any[T](errorPrefix: String, constraints: Validate[T]*): Validate[T] =
+    (entity: T) => any(constraints: _*)(entity).leftMap(_.map(e => s"$errorPrefix$e"))
+
+  /** Succeed if any of the constraints is valid, otherwise prepend errorPrefix. */
+  def any[T](errorPrefix: T => String, constraints: Validate[T]*): Validate[T] =
+    (entity: T) =>
+      any(constraints: _*)(entity).leftMap { r =>
+        val prefix = errorPrefix(entity)
+        r.map(e => s"$prefix$e")
+      }
+
+  /** Depending on the test result follow continue with either first or second constraint. */
+  def conditionally[T](
+    test: T => Boolean
+  )(constraintWhenTrue: Validate[T], constraintWhenFalse: Validate[T]): Validate[T] =
+    (entity: T) =>
+      if (test(entity)) constraintWhenTrue(entity)
+      else constraintWhenFalse(entity)
+
+  /** If the test is true then check the next constraint, otherwise valid. */
+  def whenTrue[T](test: T => Boolean)(constraintWhenTrue: Validate[T]): Validate[T] =
+    (entity: T) =>
+      if (test(entity)) constraintWhenTrue(entity)
+      else Valid(())
+
+  /** If the test is false then try the next constraint, otherwise valid. */
+  def whenFalse[T](test: T => Boolean)(constraintWhenFalse: Validate[T]): Validate[T] =
+    (entity: T) =>
+      if (test(entity)) Valid(())
+      else constraintWhenFalse(entity)
+
+  /** Depending on the guard constraint result continue with either first or second constraint. */
   def when[T](
     guardConstraint: Validate[T]
   )(constraintWhenValid: Validate[T], constraintWhenInvalid: Validate[T]): Validate[T] =
@@ -437,6 +481,22 @@ object Validator {
     def *[U](otherValidate: Validate[U]): Validate[(T, U)] = Validator.product(thisValidate, otherValidate)
     def ?(otherValidate: Validate[T]): Validate[T] = Validator.whenValid[T](thisValidate)(otherValidate)
     def ?!(otherValidate: Validate[T]): Validate[T] = Validator.whenInvalid[T](thisValidate)(otherValidate)
+    def @:(errorPrefix: String): Validate[T] = withPrefix(errorPrefix)
+    def withPrefix(errorPrefix: String): Validate[T] =
+      (entity: T) => thisValidate(entity).leftMap(_.map(e => s"$errorPrefix$e"))
+    def withPrefix(errorPrefix: T => String): Validate[T] =
+      (entity: T) =>
+        thisValidate(entity).leftMap { r =>
+          val prefix = errorPrefix(entity)
+          r.map(e => s"$prefix$e")
+        }
+
+    def debug: Validate[T] =
+      (entity: T) => {
+        print(entity)
+        print(" => ")
+        thisValidate(entity).debug
+      }
   }
 
   final implicit class ValidatedOps(val validated: Validated[List[String], Unit]) {
@@ -452,7 +512,7 @@ object Validator {
     def errorString(start: String, sep: String, end: String): Option[String] = errors.map(_.mkString(start, sep, end))
 
     def debug: Validated[List[String], Unit] = {
-      println(errorString(", "))
+      println(validated.bimap(e => s"Invalid(${e.mkString(", ")})", _ => "Valid"))
       validated
     }
   }

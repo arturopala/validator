@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v2
       - run: git fetch --tags --unshallow -f
       - name: Setup scala
-        uses: olafurpg/setup-scala@v10
+        uses: olafurpg/setup-scala@v13
       - name: Generate README
         run: sbt dynver docs/mdoc 
       - name: Commit README changes

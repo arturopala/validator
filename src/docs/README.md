@@ -12,6 +12,8 @@ This is a micro-library for Scala
 Cross-compiles to Scala versions @SUPPORTED_SCALA_VERSIONS@, 
 and ScalaJS version `@SCALA_JS_VERSION@`, and ScalaNative version `@SCALA_NATIVE_VERSION@`.
 
+[Latest API Scaladoc](https://arturopala.github.io/validator/latest/api/com/github/arturopala/validator/index.html)
+
 Motivation
 ---
 

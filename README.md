@@ -33,10 +33,6 @@ import com.github.arturopala.validator.Validator._
 
 val validateIsEven: Validate[Int] = 
     check[Int](_ % 2 == 0, "must be even integer")
-<<<<<<< HEAD
-=======
-// validateIsEven: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$12238/577424150@446afe28
->>>>>>> 26b84091132598d8d67a68689c51bb2235469188
 
 val validateIsNonEmpty: Validate[String] = 
     check[String](_.nonEmpty, "must be non-empty string") 
@@ -67,7 +63,6 @@ Validators can be combined using different strategies:
 ```scala
 val validateIsPositive: Validate[Int] = 
     check[Int](_ > 0, "must be positive integer")
-<<<<<<< HEAD
  
 // combine using ANY to validate whether all checks pass
 val validateIsEvenAndPositive: Validate[Int] = 
@@ -75,37 +70,16 @@ val validateIsEvenAndPositive: Validate[Int] =
         validateIsEven, 
         validateIsPositive
     )
-=======
-// validateIsPositive: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$12238/577424150@338fbc03
-  
-validateIsPositive(1).isValid  
-// res3: Boolean = true  
-validateIsPositive(-1).isInvalid    
-// res4: Boolean = true    
-validateIsPositive(-1).errors  
-// res5: Option[Seq[String]] = Some(value = List("must be positive integer"))  
-validateIsPositive(0).isInvalid 
-// res6: Boolean = true 
-
-val validateIsEvenAndPositive: Validate[Int] = 
-    all(validateIsEven, validateIsPositive)
-// validateIsEvenAndPositive: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$12241/1475728342@a926b7
->>>>>>> 26b84091132598d8d67a68689c51bb2235469188
 
 // or use an infix operator &
 val evenAndPositive = validateIsEven & validateIsPositive  
 
 // combine using ANY to validate whether any check passes
 val validateIsEvenOrPositive: Validate[Int] = 
-<<<<<<< HEAD
     any(
         validateIsEven, 
         validateIsPositive
     )
-=======
-    any(validateIsEven, validateIsPositive)
-// validateIsEvenOrPositive: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$12246/1293373160@53d0cb44
->>>>>>> 26b84091132598d8d67a68689c51bb2235469188
 
 // or use an infix operator |
 val evenOrPositive = validateIsEven | validateIsPositive 

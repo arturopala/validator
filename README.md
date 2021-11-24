@@ -25,7 +25,7 @@ import com.github.arturopala.validator.Validator._
 
 val validateIsEven: Validate[Int] = 
     check[Int](_ % 2 == 0, "must be even integer")
-// validateIsEven: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$12201/1732347703@98b2dd8
+// validateIsEven: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$12236/615819755@5eb8a04e
 
 validateIsEven(2).isValid
 // res0: Boolean = true
@@ -36,7 +36,7 @@ validateIsEven(1).errors
 
 val validateIsPositive: Validate[Int] = 
     check[Int](_ > 0, "must be positive integer")
-// validateIsPositive: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$12201/1732347703@2411fd6
+// validateIsPositive: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$12236/615819755@5a6bdbac
   
 validateIsPositive(1).isValid  
 // res3: Boolean = true  
@@ -49,7 +49,7 @@ validateIsPositive(0).isInvalid
 
 val validateIsEvenAndPositive: Validate[Int] = 
     all(validateIsEven, validateIsPositive)
-// validateIsEvenAndPositive: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$12204/1694824188@7a0e29d9
+// validateIsEvenAndPositive: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$12239/1598715257@75e458da
 
 validateIsEvenAndPositive(2).isValid  
 // res7: Boolean = true  
@@ -68,7 +68,7 @@ validateIsEvenAndPositive(0).isInvalid
 
 val validateIsEvenOrPositive: Validate[Int] = 
     any(validateIsEven, validateIsPositive)
-// validateIsEvenOrPositive: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$12209/1570600632@71d43ae0
+// validateIsEvenOrPositive: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$12244/1429201451@4097f7db
 
 validateIsEvenOrPositive(2).isValid   
 // res13: Boolean = true   

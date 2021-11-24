@@ -78,7 +78,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     }
   }
 
-  property("Validator.when runs the guard check and follows with either first or second check") {
+  test("Validator.when runs the guard check and follows with either first or second check") {
     val validateStartsWithZero =
       Validator.check[String](_.headOption.contains('0'), "first character must be a Zero")
     val validateOnlyDigits = Validator.check[String](_.forall(_.isDigit), "all characters must be digits")
@@ -106,7 +106,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     assert(validate("0000").errorString == Some("must have 3 characters"))
   }
 
-  property("Validator.whenValid runs the guard check and if valid follows with the next check") {
+  test("Validator.whenValid runs the guard check and if valid follows with the next check") {
     val validateStartsWithZero =
       Validator.check[String](_.headOption.contains('0'), "first character must be a Zero")
     val validateOnlyDigits = Validator.check[String](_.forall(_.isDigit), "all characters must be digits")
@@ -129,7 +129,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     assert(validate("0000").errorString == Some("must have 3 characters"))
   }
 
-  property("Infix operator ? runs the left check and if valid follows with the right check") {
+  test("Infix operator ? runs the left check and if valid follows with the right check") {
     val validateStartsWithZero =
       Validator.check[String](_.headOption.contains('0'), "first character must be a Zero")
     val validateOnlyDigits = Validator.check[String](_.forall(_.isDigit), "all characters must be digits")
@@ -154,7 +154,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     assert(validate("0000").errorString == Some("must have 3 characters"))
   }
 
-  property("Validator.whenInvalid runs the guard check and if invalid then tries the next check") {
+  test("Validator.whenInvalid runs the guard check and if invalid then tries the next check") {
     val validateStartsWithZero =
       Validator.check[String](_.headOption.contains('0'), "first character must be a Zero")
     val validateNonEmpty = Validator.check[String](_.nonEmpty, "must be non empty string")
@@ -180,7 +180,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     assert(validate("123").errorString == Some("all characters must be upper case"))
   }
 
-  property("Infix operator ! runs the left check and if invalid then tries the right check") {
+  test("Infix operator ! runs the left check and if invalid then tries the right check") {
     val validateStartsWithZero =
       Validator.check[String](_.headOption.contains('0'), "first character must be a Zero")
     val validateNonEmpty = Validator.check[String](_.nonEmpty, "must be non empty string")
@@ -224,8 +224,6 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         )
     }
   }
-
-  property("Validator.validate wraps simple validator") {}
 
   property("Validator.check returns Valid only if condition fulfilled") {
     val validate =

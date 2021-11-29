@@ -111,14 +111,14 @@ Validate objects using `checkProperty`, `checkIfSome`, `checkEach`, `checkEachIf
 case class Foo(a: String, b: Option[Int], c: Boolean, d: Seq[String], e: Bar)
 case class Bar(f: BigDecimal, h: Option[Seq[Int]])
 
-val validateBar: Validate[Bar] = allWithPrefix[Bar]("[Bar]", // <-- errors prefix
+val validateBar: Validate[Bar] = all[Bar](
     check(_.f.inRange(0,100),".f must be in range 0..100 inclusive"),
     checkEachIfSome(_.h, validateIsEvenAndPositive, i => s".h[$i] ", isValidIfNone = false)
-)
+).withPrefix("[Bar]")
 
 val prefix: AnyRef => String = o => s"[${o.getClass.getSimpleName}]"
 
-val validateFoo: Validate[Foo] = allWithComputedPrefix[Foo](prefix, // <-- errors prefix function
+val validateFoo: Validate[Foo] = all[Foo](
     checkProperty(_.a, validateIsNonEmpty),
     check(_.a.matches("[A-Z]\\d{3,5}"),".a must follow pattern [A-Z]\\d{3,5}"),
     checkIfSome(_.b, evenOrPositive, ".b", isValidIfNone = true),
@@ -127,7 +127,7 @@ val validateFoo: Validate[Foo] = allWithComputedPrefix[Foo](prefix, // <-- error
         i => s".d[$i] "),
         checkProperty(_.e, validateBar, ".e")
     )
-)
+).withComputedPrefix(prefix)
 ```
 ```scala mdoc 
 validateFoo(Foo("X678",Some(2),true,Seq("abc"),Bar(500,Some(Seq(8)))))

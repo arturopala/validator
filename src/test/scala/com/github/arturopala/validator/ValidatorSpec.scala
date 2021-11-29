@@ -48,7 +48,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val nonEmptyStringValidator = Validator.check[String](_.nonEmpty, "string must be non-empty")
     val emptyStringValidator = Validator.check[String](_.isEmpty(), "string must be empty")
     val validate: Validate[String] =
-      Validator.all("foo: ", nonEmptyStringValidator, emptyStringValidator)
+      Validator.allWithPrefix("foo: ", nonEmptyStringValidator, emptyStringValidator)
 
     forAll { (string: String) =>
       Prop.all(
@@ -56,9 +56,9 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         ("foo: " @: nonEmptyStringValidator)("").errorString == Some("foo: string must be non-empty"),
         (emptyStringValidator.withPrefix("@ "))(s"a$string").errorString == Some("@ string must be empty"),
         nonEmptyStringValidator(s"a$string").isValid,
-        Validator.all("foo_", nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
+        Validator.allWithPrefix("foo_", nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
           Some(if (string.isEmpty) "foo_string must be non-empty" else "foo_string must be empty"),
-        Validator.all("bar/", nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
+        Validator.allWithPrefix("bar/", nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
           Some(if (string.isEmpty) "bar/string must be non-empty" else "bar/string must be empty"),
         validate(string).errorString ==
           Some(if (string.isEmpty) "foo: string must be non-empty" else "foo: string must be empty")
@@ -75,11 +75,20 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     forAll { (string: String) =>
       val f = string.take(1)
       Prop.all(
-        Validator.all(calculatePrefix, nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
+        Validator
+          .allWithComputedPrefix(calculatePrefix, nonEmptyStringValidator, emptyStringValidator)
+          .apply(string)
+          .errorString ==
           Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty"),
-        Validator.all(calculatePrefix, nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
+        Validator
+          .allWithComputedPrefix(calculatePrefix, nonEmptyStringValidator, emptyStringValidator)
+          .apply(string)
+          .errorString ==
           Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty"),
-        Validator.all(calculatePrefix, nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
+        Validator
+          .allWithComputedPrefix(calculatePrefix, nonEmptyStringValidator, emptyStringValidator)
+          .apply(string)
+          .errorString ==
           Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty")
       )
     }
@@ -127,12 +136,12 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     forAllNoShrink(Gen.alphaChar, Gen.numChar) { (a: Char, d: Char) =>
       (a.isLower) ==>
         Prop.all(
-          Validator.any("foo_", hasDigitValidator, hasLowerCaseValidator).apply(s"$a-$d").isValid,
-          Validator.any("foo_", hasDigitValidator, hasLowerCaseValidator).apply(s"$a-$a").isValid,
-          Validator.any("foo_", hasDigitValidator, hasLowerCaseValidator).apply(s"$d-$d").isValid,
-          Validator.any("foo_", hasDigitValidator, hasLowerCaseValidator).apply(s"$d-$a").isValid,
+          Validator.anyWithPrefix("foo_", hasDigitValidator, hasLowerCaseValidator).apply(s"$a-$d").isValid,
+          Validator.anyWithPrefix("foo_", hasDigitValidator, hasLowerCaseValidator).apply(s"$a-$a").isValid,
+          Validator.anyWithPrefix("foo_", hasDigitValidator, hasLowerCaseValidator).apply(s"$d-$d").isValid,
+          Validator.anyWithPrefix("foo_", hasDigitValidator, hasLowerCaseValidator).apply(s"$d-$a").isValid,
           Validator
-            .any("foo_", hasDigitValidator, hasLowerCaseValidator)
+            .anyWithPrefix("foo_", hasDigitValidator, hasLowerCaseValidator)
             .apply(s"${a.toUpper}" * d.toInt)
             .errorString(", ") == Some(
             "foo_some characters must be digits, foo_some characters must be lower case"
@@ -154,7 +163,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       (a.isLower) ==>
         Prop.all(
           Validator
-            .any(calculatePrefix, hasDigitValidator, hasLowerCaseValidator)
+            .anyWithComputedPrefix(calculatePrefix, hasDigitValidator, hasLowerCaseValidator)
             .apply(s"${a.toUpper}" * d.toInt)
             .errorString(", ") == Some(
             s"${a.toUpper}_some characters must be digits, ${a.toUpper}_some characters must be lower case"
@@ -401,7 +410,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
 
   property("Validator.checkFromOption returns Valid only if condition returns Some") {
     val validate: Validate[Option[Int]] =
-      Validator.checkFromOption[Option[Int]](identity, "option must be defined")
+      Validator.checkIsDefined[Option[Int]](identity, "option must be defined")
 
     Prop.all(
       forAll { (int: Int) =>

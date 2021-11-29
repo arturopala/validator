@@ -1,6 +1,8 @@
 [![Build and test](https://github.com/arturopala/validator/actions/workflows/build.yml/badge.svg)](https://github.com/arturopala/validator/actions/workflows/build.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.arturopala/validator_2.13.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.github.arturopala%22%20AND%20a:%22validator_2.13%22)
 [![Scala.js](https://www.scala-js.org/assets/badges/scalajs-1.7.0.svg)](https://www.scala-js.org)
+![Code size](https://img.shields.io/github/languages/code-size/arturopala/validator)
+![GitHub](https://img.shields.io/github/license/arturopala/validator)
 
 Validator
 ===
@@ -125,14 +127,14 @@ Validate objects using `checkProperty`, `checkIfSome`, `checkEach`, `checkEachIf
 case class Foo(a: String, b: Option[Int], c: Boolean, d: Seq[String], e: Bar)
 case class Bar(f: BigDecimal, h: Option[Seq[Int]])
 
-val validateBar: Validate[Bar] = all[Bar]("[Bar]", // <-- errors prefix
+val validateBar: Validate[Bar] = allWithPrefix[Bar]("[Bar]", // <-- errors prefix
     check(_.f.inRange(0,100),".f must be in range 0..100 inclusive"),
     checkEachIfSome(_.h, validateIsEvenAndPositive, i => s".h[$i] ", isValidIfNone = false)
 )
 
 val prefix: AnyRef => String = o => s"[${o.getClass.getSimpleName}]"
 
-val validateFoo: Validate[Foo] = all[Foo](prefix, // <-- errors prefix function
+val validateFoo: Validate[Foo] = allWithComputedPrefix[Foo](prefix, // <-- errors prefix function
     checkProperty(_.a, validateIsNonEmpty),
     check(_.a.matches("[A-Z]\\d{3,5}"),".a must follow pattern [A-Z]\\d{3,5}"),
     checkIfSome(_.b, evenOrPositive, ".b", isValidIfNone = true),
@@ -184,7 +186,7 @@ evenOrPositive.withPrefix("foo_").apply(-1).errorString
 // res22: Option[String] = Some(
 //   value = "foo_must be even integer,foo_must be positive integer"
 // )
-evenOrPositive.withPrefix(i => s"($i) ").apply(-1).errorString
+evenOrPositive.withComputedPrefix(i => s"($i) ").apply(-1).errorString
 // res23: Option[String] = Some(
 //   value = "(-1) must be even integer,(-1) must be positive integer"
 // )

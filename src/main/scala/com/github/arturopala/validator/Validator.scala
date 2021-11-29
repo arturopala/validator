@@ -42,11 +42,11 @@ object Validator {
   def all[T](constraints: Validate[T]*): Validate[T] = apply(constraints: _*)
 
   /** Succeed only if all constraints are valid, otherwise prepend errorPrefix. */
-  def all[T](errorPrefix: String, constraints: Validate[T]*): Validate[T] =
+  def allWithPrefix[T](errorPrefix: String, constraints: Validate[T]*): Validate[T] =
     (entity: T) => all(constraints: _*)(entity).leftMap(_.map(e => s"$errorPrefix$e"))
 
   /** Succeed only if all constraints are valid, otherwise prepend calculated errorPrefix. */
-  def all[T](errorPrefix: T => String, constraints: Validate[T]*): Validate[T] =
+  def allWithComputedPrefix[T](errorPrefix: T => String, constraints: Validate[T]*): Validate[T] =
     (entity: T) =>
       all(constraints: _*)(entity).leftMap { r =>
         val prefix = errorPrefix(entity)
@@ -64,11 +64,11 @@ object Validator {
       }
 
   /** Succeed if any of the constraints is valid, otherwise prepend errorPrefix. */
-  def any[T](errorPrefix: String, constraints: Validate[T]*): Validate[T] =
+  def anyWithPrefix[T](errorPrefix: String, constraints: Validate[T]*): Validate[T] =
     (entity: T) => any(constraints: _*)(entity).leftMap(_.map(e => s"$errorPrefix$e"))
 
   /** Succeed if any of the constraints is valid, otherwise prepend errorPrefix. */
-  def any[T](errorPrefix: T => String, constraints: Validate[T]*): Validate[T] =
+  def anyWithComputedPrefix[T](errorPrefix: T => String, constraints: Validate[T]*): Validate[T] =
     (entity: T) =>
       any(constraints: _*)(entity).leftMap { r =>
         val prefix = errorPrefix(entity)
@@ -166,7 +166,7 @@ object Validator {
     (entity: T) => Validated.fromEither(test(entity).map(_ => ()).left.map(e => s"$errorPrefix$e" :: Nil))
 
   /** Validate if the test returns Some, otherwise fail with error. */
-  def checkFromOption[T](test: T => Option[Any], error: String): Validate[T] =
+  def checkIsDefined[T](test: T => Option[Any], error: String): Validate[T] =
     (entity: T) => Validated.fromOption(test(entity).map(_ => ()), error :: Nil)
 
   /** Apply constraint to the extracted property. */
@@ -484,7 +484,7 @@ object Validator {
     def @:(errorPrefix: String): Validate[T] = withPrefix(errorPrefix)
     def withPrefix(errorPrefix: String): Validate[T] =
       (entity: T) => thisValidate(entity).leftMap(_.map(e => s"$errorPrefix$e"))
-    def withPrefix(errorPrefix: T => String): Validate[T] =
+    def withComputedPrefix(errorPrefix: T => String): Validate[T] =
       (entity: T) =>
         thisValidate(entity).leftMap { r =>
           val prefix = errorPrefix(entity)

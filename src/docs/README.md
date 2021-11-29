@@ -111,14 +111,14 @@ Validate objects using `checkProperty`, `checkIfSome`, `checkEach`, `checkEachIf
 case class Foo(a: String, b: Option[Int], c: Boolean, d: Seq[String], e: Bar)
 case class Bar(f: BigDecimal, h: Option[Seq[Int]])
 
-val validateBar: Validate[Bar] = all[Bar]("[Bar]", // <-- errors prefix
+val validateBar: Validate[Bar] = allWithPrefix[Bar]("[Bar]", // <-- errors prefix
     check(_.f.inRange(0,100),".f must be in range 0..100 inclusive"),
     checkEachIfSome(_.h, validateIsEvenAndPositive, i => s".h[$i] ", isValidIfNone = false)
 )
 
 val prefix: AnyRef => String = o => s"[${o.getClass.getSimpleName}]"
 
-val validateFoo: Validate[Foo] = all[Foo](prefix, // <-- errors prefix function
+val validateFoo: Validate[Foo] = allWithComputedPrefix[Foo](prefix, // <-- errors prefix function
     checkProperty(_.a, validateIsNonEmpty),
     check(_.a.matches("[A-Z]\\d{3,5}"),".a must follow pattern [A-Z]\\d{3,5}"),
     checkIfSome(_.b, evenOrPositive, ".b", isValidIfNone = true),
@@ -141,7 +141,7 @@ Tag validator with prefix:
 evenOrPositive.apply(-1).errorString
 ("prefix: " @: evenOrPositive).apply(-1).errorString
 evenOrPositive.withPrefix("foo_").apply(-1).errorString
-evenOrPositive.withPrefix(i => s"($i) ").apply(-1).errorString
+evenOrPositive.withComputedPrefix(i => s"($i) ").apply(-1).errorString
 ```
 
 Debug validator:

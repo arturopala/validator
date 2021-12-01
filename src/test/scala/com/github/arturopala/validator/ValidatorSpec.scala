@@ -278,47 +278,32 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       Validator.check[String](_.headOption.contains('0'), "first character must be a Zero")
     val validateOnlyDigits = Validator.check[String](_.forall(_.isDigit), "all characters must be digits")
     def validateLength(length: Int) = Validator.check[String](_.length() == length, s"must have $length characters")
-    val validate: Validate[String] =
+    val validate1: Validate[String] =
       Validator.whenValid(validateStartsWithZero)(validateLength(3) & validateOnlyDigits)
-
-    assert(validate("000").isValid)
-    assert(validate("012").isValid)
-    assert(validate("A").errorString == Some("first character must be a Zero"))
-    assert(validate("AZ").errorString == Some("first character must be a Zero"))
-    assert(validate("ABC").errorString == Some("first character must be a Zero"))
-    assert(validate("").errorString == Some("first character must be a Zero"))
-    assert(validate("Az").errorString == Some("first character must be a Zero"))
-    assert(validate("az").errorString == Some("first character must be a Zero"))
-    assert(validate("a").errorString == Some("first character must be a Zero"))
-    assert(validate("123").errorString == Some("first character must be a Zero"))
-    assert(validate("0").errorString == Some("must have 3 characters"))
-    assert(validate("00").errorString == Some("must have 3 characters"))
-    assert(validate("0000").errorString == Some("must have 3 characters"))
-  }
-
-  test("Infix operator ? runs the left check and if valid follows with the right check") {
-    val validateStartsWithZero =
-      Validator.check[String](_.headOption.contains('0'), "first character must be a Zero")
-    val validateOnlyDigits = Validator.check[String](_.forall(_.isDigit), "all characters must be digits")
-    def validateLength(length: Int) = Validator.check[String](_.length() == length, s"must have $length characters")
-    val validate: Validate[String] =
+    val validate2: Validate[String] =
+      validateStartsWithZero.andWhenValid(validateLength(3) & validateOnlyDigits)
+    val validate3: Validate[String] =
       validateStartsWithZero ? (validateLength(3) & validateOnlyDigits)
 
-    assert(validate("000").isValid)
-    assert(validate("012").isValid)
-    assert(validate("A").errorString == Some("first character must be a Zero"))
-    assert(validate("AZ").errorString == Some("first character must be a Zero"))
-    assert(validate("ABC").errorString == Some("first character must be a Zero"))
-    assert(validate("").errorString == Some("first character must be a Zero"))
-    assert(validate("Az").errorString == Some("first character must be a Zero"))
-    assert(validate("az").errorString == Some("first character must be a Zero"))
-    assert(validate("a").errorString == Some("first character must be a Zero"))
-    assert(validate("1").errorString == Some("first character must be a Zero"))
-    assert(validate("12").errorString == Some("first character must be a Zero"))
-    assert(validate("123").errorString == Some("first character must be a Zero"))
-    assert(validate("0").errorString == Some("must have 3 characters"))
-    assert(validate("00").errorString == Some("must have 3 characters"))
-    assert(validate("0000").errorString == Some("must have 3 characters"))
+    def runtWith(validate: Validate[String]) = {
+      assert(validate("000").isValid)
+      assert(validate("012").isValid)
+      assert(validate("A").errorString == Some("first character must be a Zero"))
+      assert(validate("AZ").errorString == Some("first character must be a Zero"))
+      assert(validate("ABC").errorString == Some("first character must be a Zero"))
+      assert(validate("").errorString == Some("first character must be a Zero"))
+      assert(validate("Az").errorString == Some("first character must be a Zero"))
+      assert(validate("az").errorString == Some("first character must be a Zero"))
+      assert(validate("a").errorString == Some("first character must be a Zero"))
+      assert(validate("123").errorString == Some("first character must be a Zero"))
+      assert(validate("0").errorString == Some("must have 3 characters"))
+      assert(validate("00").errorString == Some("must have 3 characters"))
+      assert(validate("0000").errorString == Some("must have 3 characters"))
+    }
+
+    runtWith(validate1)
+    runtWith(validate2)
+    runtWith(validate3)
   }
 
   test("Validator.whenInvalid runs the guard check and if invalid then tries the next check") {
@@ -326,51 +311,35 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       Validator.check[String](_.headOption.contains('0'), "first character must be a Zero")
     val validateNonEmpty = Validator.check[String](_.nonEmpty, "must be non empty string")
     val validateAllUpperCase = Validator.check[String](_.forall(_.isUpper), "all characters must be upper case")
-    val validate: Validate[String] =
+    val validate1: Validate[String] =
       Validator.whenInvalid(validateStartsWithZero)(validateNonEmpty & validateAllUpperCase)
-
-    assert(validate("A").isValid)
-    assert(validate("AZ").isValid)
-    assert(validate("ABC").isValid)
-    assert(validate("0").isValid)
-    assert(validate("00").isValid)
-    assert(validate("000").isValid)
-    assert(validate("0000").isValid)
-    assert(validate("012").isValid)
-    assert(validate("0123").isValid)
-    assert(validate("").errorString == Some("must be non empty string"))
-    assert(validate("Az").errorString == Some("all characters must be upper case"))
-    assert(validate("az").errorString == Some("all characters must be upper case"))
-    assert(validate("a").errorString == Some("all characters must be upper case"))
-    assert(validate("1").errorString == Some("all characters must be upper case"))
-    assert(validate("12").errorString == Some("all characters must be upper case"))
-    assert(validate("123").errorString == Some("all characters must be upper case"))
-  }
-
-  test("Infix operator ! runs the left check and if invalid then tries the right check") {
-    val validateStartsWithZero =
-      Validator.check[String](_.headOption.contains('0'), "first character must be a Zero")
-    val validateNonEmpty = Validator.check[String](_.nonEmpty, "must be non empty string")
-    val validateAllUpperCase = Validator.check[String](_.forall(_.isUpper), "all characters must be upper case")
-    val validate: Validate[String] =
+    val validate2: Validate[String] =
+      validateStartsWithZero.andWhenInvalid(validateNonEmpty & validateAllUpperCase)
+    val validate3: Validate[String] =
       validateStartsWithZero ?! (validateNonEmpty & validateAllUpperCase)
 
-    assert(validate("A").isValid)
-    assert(validate("AZ").isValid)
-    assert(validate("ABC").isValid)
-    assert(validate("0").isValid)
-    assert(validate("00").isValid)
-    assert(validate("000").isValid)
-    assert(validate("0000").isValid)
-    assert(validate("012").isValid)
-    assert(validate("0123").isValid)
-    assert(validate("").errorString == Some("must be non empty string"))
-    assert(validate("Az").errorString == Some("all characters must be upper case"))
-    assert(validate("az").errorString == Some("all characters must be upper case"))
-    assert(validate("a").errorString == Some("all characters must be upper case"))
-    assert(validate("1").errorString == Some("all characters must be upper case"))
-    assert(validate("12").errorString == Some("all characters must be upper case"))
-    assert(validate("123").errorString == Some("all characters must be upper case"))
+    def runtWith(validate: Validate[String]) = {
+      assert(validate("A").isValid)
+      assert(validate("AZ").isValid)
+      assert(validate("ABC").isValid)
+      assert(validate("0").isValid)
+      assert(validate("00").isValid)
+      assert(validate("000").isValid)
+      assert(validate("0000").isValid)
+      assert(validate("012").isValid)
+      assert(validate("0123").isValid)
+      assert(validate("").errorString == Some("must be non empty string"))
+      assert(validate("Az").errorString == Some("all characters must be upper case"))
+      assert(validate("az").errorString == Some("all characters must be upper case"))
+      assert(validate("a").errorString == Some("all characters must be upper case"))
+      assert(validate("1").errorString == Some("all characters must be upper case"))
+      assert(validate("12").errorString == Some("all characters must be upper case"))
+      assert(validate("123").errorString == Some("all characters must be upper case"))
+    }
+
+    runtWith(validate1)
+    runtWith(validate2)
+    runtWith(validate3)
   }
 
   property("Validator.product combines provided validators to verify tuples of values") {
@@ -406,6 +375,16 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
           (validate(Foo(s"$char$string")).errorString == Some("foo.bar must start with A"))
       }
     )
+  }
+
+  property("Validator.checkEquals returns Valid only if condition fulfilled") {
+    val validate =
+      Validator.checkEquals[Foo, Int](_.bar.toInt, _.bazOpt.getOrElse(0), "foo.bar must be the same as foo.baz")
+
+    forAll { (int: Int) =>
+      validate(Foo(int.toString(), Some(int))).isValid
+      validate(Foo(int.toString(), Some(int - 1))).isInvalid
+    }
   }
 
   property("Validator.checkFromOption returns Valid only if condition returns Some") {

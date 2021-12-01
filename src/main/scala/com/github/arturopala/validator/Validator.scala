@@ -19,6 +19,7 @@ package com.github.arturopala.validator
 import cats.Semigroup
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
+import cats.Eq
 
 /** Simpler validator abstraction using Cats Validated https://typelevel.org/cats/datatypes/validated.html. */
 object Validator {
@@ -156,6 +157,10 @@ object Validator {
   /** Validate if the test passes, otherwise fail with error. */
   def check[T](test: T => Boolean, error: String): Validate[T] =
     (entity: T) => Validated.cond(test(entity), (), error :: Nil)
+
+  /** Validate if two properties return the same value. */
+  def checkEquals[T, A: Eq](value1: T => A, value2: T => A, error: String): Validate[T] =
+    (entity: T) => Validated.cond(implicitly[Eq[A]].eqv(value1(entity), value2(entity)), (), error :: Nil)
 
   /** Validate if the test returns Right, otherwise fail with Left error. */
   def checkFromEither[T](test: T => Either[String, Any]): Validate[T] =
@@ -479,8 +484,13 @@ object Validator {
     def &(otherValidate: Validate[T]): Validate[T] = Validator.all(thisValidate, otherValidate)
     def |(otherValidate: Validate[T]): Validate[T] = Validator.any(thisValidate, otherValidate)
     def *[U](otherValidate: Validate[U]): Validate[(T, U)] = Validator.product(thisValidate, otherValidate)
+
     def ?(otherValidate: Validate[T]): Validate[T] = Validator.whenValid[T](thisValidate)(otherValidate)
     def ?!(otherValidate: Validate[T]): Validate[T] = Validator.whenInvalid[T](thisValidate)(otherValidate)
+
+    def andWhenValid(otherValidate: Validate[T]): Validate[T] = Validator.whenValid[T](thisValidate)(otherValidate)
+    def andWhenInvalid(otherValidate: Validate[T]): Validate[T] = Validator.whenInvalid[T](thisValidate)(otherValidate)
+
     def @:(errorPrefix: String): Validate[T] = withPrefix(errorPrefix)
     def withPrefix(errorPrefix: String): Validate[T] =
       (entity: T) => thisValidate(entity).leftMap(_.map(e => s"$errorPrefix$e"))

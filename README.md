@@ -35,7 +35,7 @@ import com.github.arturopala.validator.Validator._
 case class E(a: Int, b: String, c: Option[Int], d: Seq[Int], e: Either[String,E], f: Option[Seq[Int]], g: Boolean, h: Option[String])
 
 val divisibleByThree: Validate[Int] = check[Int](_ % 3 == 0, "must be divisible by three")
-// divisibleByThree: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$8360/0x0000000802266040@5a36fb1b
+// divisibleByThree: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$12480/1477818428@22b1f801
 
 val validateE: Validate[E] = any[E](
     checkEquals(_.a.toString, _.b, "a must be same as b"),
@@ -65,7 +65,7 @@ val validateE: Validate[E] = any[E](
     checkIfOnlyOneIsTrue(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 or g must be true"),
     checkIfOnlyOneSetIsTrue(Seq(Set(_.a.inRange(0,10), _.g), Set(_.g,_.h.isDefined)),"only (g and a must not be 0..10) or (g and h.isDefined) must be true"),
 )
-// validateE: E => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$8385/0x0000000802285040@5c0f8f03
+// validateE: E => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$12505/498349115@1174dddc
 ```
 
 Usage
@@ -239,16 +239,7 @@ Debug validator:
 ```scala
 // debug input and output
 validateFoo.debug.apply(Foo("X678",Some(2),true,Seq("abc"),Bar(500,Some(Seq(8)))))
-// Foo(
-//   a = "X678",
-//   b = Some(2),
-//   c = true,
-//   d = List("abc"),
-//   e = Bar(
-//     f = 500,
-//     h = Some(List(8))
-//   )
-// ) => Valid
+// Foo(X678,Some(2),true,List(abc),Bar(500,Some(List(8)))) => Valid
 // res24: cats.data.Validated[List[String], Unit] = Valid(a = ())
 // debug only output
 validateFoo.apply(Foo("X678",Some(2),true,Seq("abc"),Bar(500,Some(Seq(8))))).debug

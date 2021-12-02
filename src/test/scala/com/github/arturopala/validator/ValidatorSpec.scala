@@ -178,7 +178,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     def validateLength(length: Int) = Validator.check[String](_.length() == length, s"must have $length characters")
     val validateAllUpperCase = Validator.check[String](_.forall(_.isUpper), "all characters must be upper case")
     val validate: Validate[String] =
-      Validator.conditionally[String](_.headOption.contains('0'))(
+      Validator.conditionally[String](
+        _.headOption.contains('0'),
         validateLength(3) & validateOnlyDigits,
         validateNonEmpty & validateAllUpperCase
       )
@@ -202,7 +203,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val validateOnlyDigits = Validator.check[String](_.forall(_.isDigit), "all characters must be digits")
     def validateLength(length: Int) = Validator.check[String](_.length() == length, s"must have $length characters")
     val validate: Validate[String] =
-      Validator.whenTrue[String](_.headOption.contains('0'))(validateLength(3) & validateOnlyDigits)
+      Validator.whenTrue[String](_.headOption.contains('0'), validateLength(3) & validateOnlyDigits)
 
     assert(validate("000").isValid)
     assert(validate("012").isValid)
@@ -223,7 +224,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val validateNonEmpty = Validator.check[String](_.nonEmpty, "must be non empty string")
     val validateAllUpperCase = Validator.check[String](_.forall(_.isUpper), "all characters must be upper case")
     val validate: Validate[String] =
-      Validator.whenFalse[String](_.headOption.contains('0'))(validateNonEmpty & validateAllUpperCase)
+      Validator.whenFalse[String](_.headOption.contains('0'), validateNonEmpty & validateAllUpperCase)
 
     assert(validate("A").isValid)
     assert(validate("AZ").isValid)
@@ -253,7 +254,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     def validateLength(length: Int) = Validator.check[String](_.length() == length, s"must have $length characters")
     val validateAllUpperCase = Validator.check[String](_.forall(_.isUpper), "all characters must be upper case")
     val validate: Validate[String] =
-      Validator.when(validateStartsWithZero)(
+      Validator.when(
+        validateStartsWithZero,
         validateLength(3) & validateOnlyDigits,
         validateNonEmpty & validateAllUpperCase
       )
@@ -279,7 +281,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val validateOnlyDigits = Validator.check[String](_.forall(_.isDigit), "all characters must be digits")
     def validateLength(length: Int) = Validator.check[String](_.length() == length, s"must have $length characters")
     val validate1: Validate[String] =
-      Validator.whenValid(validateStartsWithZero)(validateLength(3) & validateOnlyDigits)
+      Validator.whenValid(validateStartsWithZero, validateLength(3) & validateOnlyDigits)
     val validate2: Validate[String] =
       validateStartsWithZero.andWhenValid(validateLength(3) & validateOnlyDigits)
     val validate3: Validate[String] =
@@ -312,7 +314,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val validateNonEmpty = Validator.check[String](_.nonEmpty, "must be non empty string")
     val validateAllUpperCase = Validator.check[String](_.forall(_.isUpper), "all characters must be upper case")
     val validate1: Validate[String] =
-      Validator.whenInvalid(validateStartsWithZero)(validateNonEmpty & validateAllUpperCase)
+      Validator.whenInvalid(validateStartsWithZero, validateNonEmpty & validateAllUpperCase)
     val validate2: Validate[String] =
       validateStartsWithZero.andWhenInvalid(validateNonEmpty & validateAllUpperCase)
     val validate3: Validate[String] =
@@ -377,17 +379,29 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     )
   }
 
-  property("Validator.checkEquals returns Valid only if condition fulfilled") {
+  property("Validator.checkEquals returns Valid only if values are the same") {
     val validate =
       Validator.checkEquals[Foo, Int](_.bar.toInt, _.bazOpt.getOrElse(0), "foo.bar must be the same as foo.baz")
 
     forAll { (int: Int) =>
       validate(Foo(int.toString(), Some(int))).isValid
       validate(Foo(int.toString(), Some(int - 1))).isInvalid
+      validate(Foo(int.toString(), Some(int + 1))).isInvalid
     }
   }
 
-  property("Validator.checkFromOption returns Valid only if condition returns Some") {
+  property("Validator.checkNotEquals returns Valid only if values are not the same") {
+    val validate =
+      Validator.checkNotEquals[Foo, Int](_.bar.toInt, _.bazOpt.getOrElse(0), "foo.bar must be not the same as foo.baz")
+
+    forAll { (int: Int) =>
+      validate(Foo(int.toString(), Some(int))).isInvalid
+      validate(Foo(int.toString(), Some(int - 1))).isValid
+      validate(Foo(int.toString(), Some(int + 1))).isValid
+    }
+  }
+
+  property("Validator.checkIsDefined returns Valid only if condition returns Some") {
     val validate: Validate[Option[Int]] =
       Validator.checkIsDefined[Option[Int]](identity, "option must be defined")
 
@@ -396,6 +410,18 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         validate(Some(int)).isValid
       },
       validate(None).errorString == Some("option must be defined")
+    )
+  }
+
+  property("Validator.checkIsEmpty returns Valid only if condition returns None") {
+    val validate: Validate[Option[Int]] =
+      Validator.checkIsEmpty[Option[Int]](identity, "option must be defined")
+
+    Prop.all(
+      forAll { (int: Int) =>
+        validate(Some(int)).isInvalid
+      },
+      validate(None).isValid
     )
   }
 
@@ -746,6 +772,52 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
 
     Prop.all(
       validate(Bar(None, None, None, None)).isInvalid,
+      validate(Bar(Some(""), None, None, None)).isInvalid,
+      validate(Bar(None, Some(0), None, None)).isInvalid,
+      validate(Bar(None, None, Some(false), None)).isInvalid,
+      validate(Bar(None, None, None, Some(Seq(1, 2, 3)))).isInvalid,
+      validate(Bar(None, None, Some(true), Some(Seq(1, 2, 3)))).isInvalid,
+      validate(Bar(None, Some(-1), Some(true), Some(Seq(1, 2, 3)))).isInvalid,
+      validate(Bar(Some(""), Some(4), Some(true), Some(Seq(1, 2, 3)))).isValid,
+      validate(Bar(Some(""), Some(4), Some(true), None)).isInvalid,
+      validate(Bar(Some(""), Some(4), None, None)).isInvalid,
+      validate(Bar(Some(""), None, None, None)).isInvalid,
+      validate(Bar(Some(""), None, None, Some(Seq(1, 2, 3)))).isInvalid,
+      validate(Bar(None, Some(4), Some(true), None)).isInvalid
+    )
+  }
+
+  property(
+    "Validator.checkIfAllEmpty returns Valid only if all of the provided functions returns None"
+  ) {
+    case class Bar(a: Option[String], b: Option[Int], c: Option[Boolean], d: Option[Seq[Int]])
+    val validate = Validator.checkIfAllEmpty[Bar](Seq(_.a, _.b, _.c, _.d), "a, b, c, d")
+
+    Prop.all(
+      validate(Bar(None, None, None, None)).isValid,
+      validate(Bar(Some(""), None, None, None)).isInvalid,
+      validate(Bar(None, Some(0), None, None)).isInvalid,
+      validate(Bar(None, None, Some(false), None)).isInvalid,
+      validate(Bar(None, None, None, Some(Seq(1, 2, 3)))).isInvalid,
+      validate(Bar(None, None, Some(true), Some(Seq(1, 2, 3)))).isInvalid,
+      validate(Bar(None, Some(-1), Some(true), Some(Seq(1, 2, 3)))).isInvalid,
+      validate(Bar(Some(""), Some(4), Some(true), Some(Seq(1, 2, 3)))).isInvalid,
+      validate(Bar(Some(""), Some(4), Some(true), None)).isInvalid,
+      validate(Bar(Some(""), Some(4), None, None)).isInvalid,
+      validate(Bar(Some(""), None, None, None)).isInvalid,
+      validate(Bar(Some(""), None, None, Some(Seq(1, 2, 3)))).isInvalid,
+      validate(Bar(None, Some(4), Some(true), None)).isInvalid
+    )
+  }
+
+  property(
+    "Validator.checkIfAllOrNoneDefined returns Valid only if all of the provided functions returns None"
+  ) {
+    case class Bar(a: Option[String], b: Option[Int], c: Option[Boolean], d: Option[Seq[Int]])
+    val validate = Validator.checkIfAllOrNoneDefined[Bar](Seq(_.a, _.b, _.c, _.d), "a, b, c, d")
+
+    Prop.all(
+      validate(Bar(None, None, None, None)).isValid,
       validate(Bar(Some(""), None, None, None)).isInvalid,
       validate(Bar(None, Some(0), None, None)).isInvalid,
       validate(Bar(None, None, Some(false), None)).isInvalid,

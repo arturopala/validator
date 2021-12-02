@@ -78,28 +78,32 @@ object Validator {
 
   /** Depending on the test result follow continue with either first or second constraint. */
   def conditionally[T](
-    test: T => Boolean
-  )(constraintWhenTrue: Validate[T], constraintWhenFalse: Validate[T]): Validate[T] =
+    test: T => Boolean,
+    constraintWhenTrue: Validate[T],
+    constraintWhenFalse: Validate[T]
+  ): Validate[T] =
     (entity: T) =>
       if (test(entity)) constraintWhenTrue(entity)
       else constraintWhenFalse(entity)
 
   /** If the test is true then check the next constraint, otherwise valid. */
-  def whenTrue[T](test: T => Boolean)(constraintWhenTrue: Validate[T]): Validate[T] =
+  def whenTrue[T](test: T => Boolean, constraintWhenTrue: Validate[T]): Validate[T] =
     (entity: T) =>
       if (test(entity)) constraintWhenTrue(entity)
       else Valid(())
 
   /** If the test is false then try the next constraint, otherwise valid. */
-  def whenFalse[T](test: T => Boolean)(constraintWhenFalse: Validate[T]): Validate[T] =
+  def whenFalse[T](test: T => Boolean, constraintWhenFalse: Validate[T]): Validate[T] =
     (entity: T) =>
       if (test(entity)) Valid(())
       else constraintWhenFalse(entity)
 
   /** Depending on the guard constraint result continue with either first or second constraint. */
   def when[T](
-    guardConstraint: Validate[T]
-  )(constraintWhenValid: Validate[T], constraintWhenInvalid: Validate[T]): Validate[T] =
+    guardConstraint: Validate[T],
+    constraintWhenValid: Validate[T],
+    constraintWhenInvalid: Validate[T]
+  ): Validate[T] =
     (entity: T) =>
       guardConstraint(entity) match {
         case Valid(_)   => constraintWhenValid(entity)
@@ -107,7 +111,7 @@ object Validator {
       }
 
   /** If the guard constraint is valid then check next constraint. */
-  def whenValid[T](guardConstraint: Validate[T])(constraintWhenValid: Validate[T]): Validate[T] =
+  def whenValid[T](guardConstraint: Validate[T], constraintWhenValid: Validate[T]): Validate[T] =
     (entity: T) =>
       guardConstraint(entity) match {
         case Valid(_) => constraintWhenValid(entity)
@@ -115,7 +119,7 @@ object Validator {
       }
 
   /** If the guard constraint is invalid then try next constraint. */
-  def whenInvalid[T](guardConstraint: Validate[T])(constraintWhenInvalid: Validate[T]): Validate[T] =
+  def whenInvalid[T](guardConstraint: Validate[T], constraintWhenInvalid: Validate[T]): Validate[T] =
     (entity: T) =>
       guardConstraint(entity) match {
         case Invalid(_) => constraintWhenInvalid(entity)
@@ -162,6 +166,10 @@ object Validator {
   def checkEquals[T, A: Eq](value1: T => A, value2: T => A, error: String): Validate[T] =
     (entity: T) => Validated.cond(implicitly[Eq[A]].eqv(value1(entity), value2(entity)), (), error :: Nil)
 
+  /** Validate if two properties return different value. */
+  def checkNotEquals[T, A: Eq](value1: T => A, value2: T => A, error: String): Validate[T] =
+    (entity: T) => Validated.cond(implicitly[Eq[A]].neqv(value1(entity), value2(entity)), (), error :: Nil)
+
   /** Validate if the test returns Right, otherwise fail with Left error. */
   def checkFromEither[T](test: T => Either[String, Any]): Validate[T] =
     (entity: T) => Validated.fromEither(test(entity).map(_ => ()).left.map(_ :: Nil))
@@ -173,6 +181,10 @@ object Validator {
   /** Validate if the test returns Some, otherwise fail with error. */
   def checkIsDefined[T](test: T => Option[Any], error: String): Validate[T] =
     (entity: T) => Validated.fromOption(test(entity).map(_ => ()), error :: Nil)
+
+  /** Validate if the test returns None, otherwise fail with error. */
+  def checkIsEmpty[T](test: T => Option[Any], error: String): Validate[T] =
+    (entity: T) => if (test(entity).isEmpty) Valid(()) else Invalid(error :: Nil)
 
   /** Apply constraint to the extracted property. */
   def checkProperty[T, E](element: T => E, constraint: Validate[E]): Validate[T] =
@@ -294,7 +306,7 @@ object Validator {
           if (isValidIfNone) Valid(()) else Invalid(List("Expected Some sequence but got None"))
         )
 
-  /** Check if all extracted properties are defined. */
+  /** Check if all extracted optional properties are defined. */
   def checkIfAllDefined[T](
     extractors: Seq[T => Option[Any]],
     expectations: String
@@ -302,6 +314,26 @@ object Validator {
     (entity: T) =>
       if (extractors.forall(f => f(entity).isDefined)) Valid(())
       else Invalid(List(s"All of $expectations must be defined"))
+
+  /** Check if all extracted optional properties are empty. */
+  def checkIfAllEmpty[T](
+    extractors: Seq[T => Option[Any]],
+    expectations: String
+  ): Validate[T] =
+    (entity: T) =>
+      if (extractors.forall(f => f(entity).isEmpty)) Valid(())
+      else Invalid(List(s"All of $expectations must be empty"))
+
+  /** Check if the extracted optional properties are either all defined or all empty. */
+  def checkIfAllOrNoneDefined[T](
+    extractors: Seq[T => Option[Any]],
+    expectations: String
+  ): Validate[T] =
+    (entity: T) => {
+      val checks = extractors.map(f => f(entity))
+      if (checks.forall(_.isDefined) || checks.forall(_.isEmpty)) Valid(())
+      else Invalid(List(s"The $expectations must be either all defined or all empty"))
+    }
 
   /** Check if all tests passes */
   def checkIfAllTrue[T](
@@ -485,11 +517,11 @@ object Validator {
     def |(otherValidate: Validate[T]): Validate[T] = Validator.any(thisValidate, otherValidate)
     def *[U](otherValidate: Validate[U]): Validate[(T, U)] = Validator.product(thisValidate, otherValidate)
 
-    def ?(otherValidate: Validate[T]): Validate[T] = Validator.whenValid[T](thisValidate)(otherValidate)
-    def ?!(otherValidate: Validate[T]): Validate[T] = Validator.whenInvalid[T](thisValidate)(otherValidate)
+    def ?(otherValidate: Validate[T]): Validate[T] = Validator.whenValid[T](thisValidate, otherValidate)
+    def ?!(otherValidate: Validate[T]): Validate[T] = Validator.whenInvalid[T](thisValidate, otherValidate)
 
-    def andWhenValid(otherValidate: Validate[T]): Validate[T] = Validator.whenValid[T](thisValidate)(otherValidate)
-    def andWhenInvalid(otherValidate: Validate[T]): Validate[T] = Validator.whenInvalid[T](thisValidate)(otherValidate)
+    def andWhenValid(otherValidate: Validate[T]): Validate[T] = Validator.whenValid[T](thisValidate, otherValidate)
+    def andWhenInvalid(otherValidate: Validate[T]): Validate[T] = Validator.whenInvalid[T](thisValidate, otherValidate)
 
     def @:(errorPrefix: String): Validate[T] = withPrefix(errorPrefix)
     def withPrefix(errorPrefix: String): Validate[T] =

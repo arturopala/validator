@@ -122,7 +122,8 @@ val validateFoo: Validate[Foo] = all[Foo](
     checkProperty(_.a, validateIsNonEmpty),
     check(_.a.matches("[A-Z]\\d{3,5}"),".a must follow pattern [A-Z]\\d{3,5}"),
     checkIfSome(_.b, evenOrPositive, ".b", isValidIfNone = true),
-    conditionally[Foo](_.c)(
+    conditionally[Foo](
+        _.c,
         checkEach(_.d, validateIsNonEmpty & check(_.lengthMax(64),"64 characters maximum"), 
         i => s".d[$i] "),
         checkProperty(_.e, validateBar, ".e")

@@ -9,7 +9,7 @@ Validator
 
 This is a micro-library for Scala
 
-    "com.github.arturopala" %% "validator" % "0.4.0"
+    "com.github.arturopala" %% "validator" % "0.5.0"
 
 Cross-compiles to Scala versions `2.13.6`, `2.12.15`, `3.1.0`, 
 and ScalaJS version `1.7.0`, and ScalaNative version `0.4.0`.
@@ -25,6 +25,48 @@ Here the validator is represented by the function type alias:
     type Validate[T] = T => Validated[List[String], Unit]
 
 The rest of the API is focused on creating and combining instances of `Validate[T]`.
+
+Batteries included
+---
+
+```scala
+import com.github.arturopala.validator.Validator._
+
+case class E(a: Int, b: String, c: Option[Int], d: Seq[Int], e: Either[String,E], f: Option[Seq[Int]], g: Boolean, h: Option[String])
+
+val divisibleByThree: Validate[Int] = check[Int](_ % 3 == 0, "must be divisible by three")
+// divisibleByThree: Int => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$8360/0x0000000802266040@5a36fb1b
+
+val validateE: Validate[E] = any[E](
+    checkEquals(_.a.toString, _.b, "a must be same as b"),
+    checkNotEquals(_.a.toString, _.b, "a must be different to b"),
+    checkFromEither(_.e),
+    checkIsDefined(_.c, "c must be defined"),
+    checkIsEmpty(_.c, "c must be not defined"),
+    checkProperty(_.a, divisibleByThree),
+    checkIfSome(_.c, divisibleByThree, isValidIfNone = true),
+    all(
+        checkIfSome(_.c, divisibleByThree, isValidIfNone = false),
+        checkEach(_.d, divisibleByThree),
+        checkEachIfNonEmpty(_.d, divisibleByThree),
+        checkEachIfSome(_.f, divisibleByThree),
+    ),
+    checkIfAllDefined(Seq(_.c, _.f),"c and f must be all defined"),
+    checkIfAllEmpty(Seq(_.c, _.f),"c and f must be all empty"),
+    checkIfAllOrNoneDefined(Seq(_.c, _.f),"c and f must be either all defined or all empty"),
+    checkIfAtLeastOneIsDefined(Seq(_.c,_.f),"c or f or both must be defined"),
+    checkIfAtMostOneIsDefined(Seq(_.c,_.f),"none or c or f must be defined"),
+    checkIfOnlyOneIsDefined(Seq(_.c,_.f),"c or f must be defined"),
+    checkIfOnlyOneSetIsDefined(Seq(Set(_.c,_.f), Set(_.c,_.h)),"only (c and f) or (c and h) must be defined"),
+    checkIfAllTrue(Seq(_.a.inRange(0,10), _.g),"a must be 0..10 if g is true"),
+    checkIfAllFalse(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 if g is false"),
+    checkIfAtLeastOneIsTrue(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 or g or both must be true"),
+    checkIfAtMostOneIsTrue(Seq(_.a.inRange(0,10), _.g),"none or a must not be 0..10 or g must be true"),
+    checkIfOnlyOneIsTrue(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 or g must be true"),
+    checkIfOnlyOneSetIsTrue(Seq(Set(_.a.inRange(0,10), _.g), Set(_.g,_.h.isDefined)),"only (g and a must not be 0..10) or (g and h.isDefined) must be true"),
+)
+// validateE: E => cats.data.Validated[List[String], Unit] = com.github.arturopala.validator.Validator$$$Lambda$8385/0x0000000802285040@5c0f8f03
+```
 
 Usage
 ---
@@ -129,22 +171,22 @@ case class Bar(f: BigDecimal, h: Option[Seq[Int]])
 
 val validateBar: Validate[Bar] = all[Bar](
     check(_.f.inRange(0,100),".f must be in range 0..100 inclusive"),
-    checkEachIfSome(_.h, validateIsEvenAndPositive, i => s".h[$i] ", isValidIfNone = false)
-).withPrefix("[Bar]")
+    checkEachIfSomeWithErrorPrefix(_.h, validateIsEvenAndPositive, i => s".h[$i] ", isValidIfNone = false)
+).withErrorPrefix("[Bar]")
 
 val prefix: AnyRef => String = o => s"[${o.getClass.getSimpleName}]"
 
 val validateFoo: Validate[Foo] = all[Foo](
     checkProperty(_.a, validateIsNonEmpty),
     check(_.a.matches("[A-Z]\\d{3,5}"),".a must follow pattern [A-Z]\\d{3,5}"),
-    checkIfSome(_.b, evenOrPositive, ".b", isValidIfNone = true),
-    conditionally[Foo](
+    checkIfSome[Foo,Int](_.b, evenOrPositive, isValidIfNone = true).withErrorPrefix(".b"),
+    conditionally(
         _.c,
-        checkEach(_.d, validateIsNonEmpty & check(_.lengthMax(64),"64 characters maximum"), 
+        checkEachWithErrorPrefix(_.d, validateIsNonEmpty & check(_.lengthMax(64),"64 characters maximum"), 
         i => s".d[$i] "),
-        checkProperty(_.e, validateBar, ".e")
+        checkProperty[Foo,Bar](_.e, validateBar).withErrorPrefix(".e")
     )
-).withComputedPrefix(prefix)
+).withErrorPrefixComputed(prefix)
 ```
 ```scala
 validateFoo(Foo("X678",Some(2),true,Seq("abc"),Bar(500,Some(Seq(8)))))
@@ -183,11 +225,11 @@ evenOrPositive.apply(-1).errorString
 // res21: Option[String] = Some(
 //   value = "prefix: must be even integer,prefix: must be positive integer"
 // )
-evenOrPositive.withPrefix("foo_").apply(-1).errorString
+evenOrPositive.withErrorPrefix("foo_").apply(-1).errorString
 // res22: Option[String] = Some(
 //   value = "foo_must be even integer,foo_must be positive integer"
 // )
-evenOrPositive.withComputedPrefix(i => s"($i) ").apply(-1).errorString
+evenOrPositive.withErrorPrefixComputed(i => s"($i) ").apply(-1).errorString
 // res23: Option[String] = Some(
 //   value = "(-1) must be even integer,(-1) must be positive integer"
 // )
@@ -197,11 +239,20 @@ Debug validator:
 ```scala
 // debug input and output
 validateFoo.debug.apply(Foo("X678",Some(2),true,Seq("abc"),Bar(500,Some(Seq(8)))))
-// Foo(X678,Some(2),true,List(abc),Bar(500,Some(List(8)))) => Valid(Valid)
+// Foo(
+//   a = "X678",
+//   b = Some(2),
+//   c = true,
+//   d = List("abc"),
+//   e = Bar(
+//     f = 500,
+//     h = Some(List(8))
+//   )
+// ) => Valid
 // res24: cats.data.Validated[List[String], Unit] = Valid(a = ())
 // debug only output
 validateFoo.apply(Foo("X678",Some(2),true,Seq("abc"),Bar(500,Some(Seq(8))))).debug
-// Valid(Valid)
+// Valid
 // res25: cats.data.Validated[List[String], Unit] = Valid(a = ())
 ```
 

@@ -26,6 +26,46 @@ Here the validator is represented by the function type alias:
 
 The rest of the API is focused on creating and combining instances of `Validate[T]`.
 
+Batteries included
+---
+
+```scala mdoc
+import com.github.arturopala.validator.Validator._
+
+case class E(a: Int, b: String, c: Option[Int], d: Seq[Int], e: Either[String,E], f: Option[Seq[Int]], g: Boolean, h: Option[String])
+
+val divisibleByThree: Validate[Int] = check[Int](_ % 3 == 0, "must be divisible by three")
+
+val validateE: Validate[E] = any[E](
+    checkEquals(_.a.toString, _.b, "a must be same as b"),
+    checkNotEquals(_.a.toString, _.b, "a must be different to b"),
+    checkFromEither(_.e),
+    checkIsDefined(_.c, "c must be defined"),
+    checkIsEmpty(_.c, "c must be not defined"),
+    checkProperty(_.a, divisibleByThree),
+    checkIfSome(_.c, divisibleByThree, isValidIfNone = true),
+    all(
+        checkIfSome(_.c, divisibleByThree, isValidIfNone = false),
+        checkEach(_.d, divisibleByThree),
+        checkEachIfNonEmpty(_.d, divisibleByThree),
+        checkEachIfSome(_.f, divisibleByThree),
+    ),
+    checkIfAllDefined(Seq(_.c, _.f),"c and f must be all defined"),
+    checkIfAllEmpty(Seq(_.c, _.f),"c and f must be all empty"),
+    checkIfAllOrNoneDefined(Seq(_.c, _.f),"c and f must be either all defined or all empty"),
+    checkIfAtLeastOneIsDefined(Seq(_.c,_.f),"c or f or both must be defined"),
+    checkIfAtMostOneIsDefined(Seq(_.c,_.f),"none or c or f must be defined"),
+    checkIfOnlyOneIsDefined(Seq(_.c,_.f),"c or f must be defined"),
+    checkIfOnlyOneSetIsDefined(Seq(Set(_.c,_.f), Set(_.c,_.h)),"only (c and f) or (c and h) must be defined"),
+    checkIfAllTrue(Seq(_.a.inRange(0,10), _.g),"a must be 0..10 if g is true"),
+    checkIfAllFalse(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 if g is false"),
+    checkIfAtLeastOneIsTrue(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 or g or both must be true"),
+    checkIfAtMostOneIsTrue(Seq(_.a.inRange(0,10), _.g),"none or a must not be 0..10 or g must be true"),
+    checkIfOnlyOneIsTrue(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 or g must be true"),
+    checkIfOnlyOneSetIsTrue(Seq(Set(_.a.inRange(0,10), _.g), Set(_.g,_.h.isDefined)),"only (g and a must not be 0..10) or (g and h.isDefined) must be true"),
+)
+```
+
 Usage
 ---
 
@@ -113,22 +153,22 @@ case class Bar(f: BigDecimal, h: Option[Seq[Int]])
 
 val validateBar: Validate[Bar] = all[Bar](
     check(_.f.inRange(0,100),".f must be in range 0..100 inclusive"),
-    checkEachIfSome(_.h, validateIsEvenAndPositive, i => s".h[$i] ", isValidIfNone = false)
-).withPrefix("[Bar]")
+    checkEachIfSomeWithErrorPrefix(_.h, validateIsEvenAndPositive, i => s".h[$i] ", isValidIfNone = false)
+).withErrorPrefix("[Bar]")
 
 val prefix: AnyRef => String = o => s"[${o.getClass.getSimpleName}]"
 
 val validateFoo: Validate[Foo] = all[Foo](
     checkProperty(_.a, validateIsNonEmpty),
     check(_.a.matches("[A-Z]\\d{3,5}"),".a must follow pattern [A-Z]\\d{3,5}"),
-    checkIfSome(_.b, evenOrPositive, ".b", isValidIfNone = true),
-    conditionally[Foo](
+    checkIfSome[Foo,Int](_.b, evenOrPositive, isValidIfNone = true).withErrorPrefix(".b"),
+    conditionally(
         _.c,
-        checkEach(_.d, validateIsNonEmpty & check(_.lengthMax(64),"64 characters maximum"), 
+        checkEachWithErrorPrefix(_.d, validateIsNonEmpty & check(_.lengthMax(64),"64 characters maximum"), 
         i => s".d[$i] "),
-        checkProperty(_.e, validateBar, ".e")
+        checkProperty[Foo,Bar](_.e, validateBar).withErrorPrefix(".e")
     )
-).withComputedPrefix(prefix)
+).withErrorPrefixComputed(prefix)
 ```
 ```scala mdoc 
 validateFoo(Foo("X678",Some(2),true,Seq("abc"),Bar(500,Some(Seq(8)))))
@@ -141,8 +181,8 @@ Tag validator with prefix:
 ```scala mdoc
 evenOrPositive.apply(-1).errorString
 ("prefix: " @: evenOrPositive).apply(-1).errorString
-evenOrPositive.withPrefix("foo_").apply(-1).errorString
-evenOrPositive.withComputedPrefix(i => s"($i) ").apply(-1).errorString
+evenOrPositive.withErrorPrefix("foo_").apply(-1).errorString
+evenOrPositive.withErrorPrefixComputed(i => s"($i) ").apply(-1).errorString
 ```
 
 Debug validator:

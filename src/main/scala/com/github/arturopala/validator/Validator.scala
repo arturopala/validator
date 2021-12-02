@@ -174,10 +174,6 @@ object Validator {
   def checkFromEither[T](test: T => Either[String, Any]): Validate[T] =
     (entity: T) => Validated.fromEither(test(entity).map(_ => ()).left.map(_ :: Nil))
 
-  /** Validate if the test returns Right, otherwise fail with Left error prefixed. */
-  def checkFromEither[T](test: T => Either[String, Any], errorPrefix: String): Validate[T] =
-    (entity: T) => Validated.fromEither(test(entity).map(_ => ()).left.map(e => s"$errorPrefix$e" :: Nil))
-
   /** Validate if the test returns Some, otherwise fail with error. */
   def checkIsDefined[T](test: T => Option[Any], error: String): Validate[T] =
     (entity: T) => Validated.fromOption(test(entity).map(_ => ()), error :: Nil)
@@ -190,10 +186,6 @@ object Validator {
   def checkProperty[T, E](element: T => E, constraint: Validate[E]): Validate[T] =
     (entity: T) => constraint(element(entity))
 
-  /** Apply constraint to the extracted property and if invalid then add prefix to the errors. */
-  def checkProperty[T, E](element: T => E, constraint: Validate[E], errorPrefix: String): Validate[T] =
-    (entity: T) => constraint(element(entity)).leftMap(_.map(e => s"$errorPrefix$e"))
-
   /** Apply constraint to the extracted property if defined, otherwise follow isValidIfNone flag. */
   def checkIfSome[T, E](
     element: T => Option[E],
@@ -205,26 +197,6 @@ object Validator {
         .map(constraint)
         .getOrElse(
           if (isValidIfNone) Valid(()) else Invalid(List("Expected Some value but got None"))
-        )
-
-  /** Apply constraint to the extracted property if defined, otherwise follow isValidIfNone flag.
-    * If invalid then add prefix to the errors.
-    */
-  def checkIfSome[T, E](
-    element: T => Option[E],
-    validator: Validate[E],
-    errorPrefix: String,
-    isValidIfNone: Boolean
-  ): Validate[T] =
-    (entity: T) =>
-      element(entity)
-        .map(v =>
-          validator
-            .apply(v)
-            .leftMap(_.map(e => s"$errorPrefix$e"))
-        )
-        .getOrElse(
-          if (isValidIfNone) Valid(()) else Invalid(List(s"$errorPrefix expected Some value but got None"))
         )
 
   /** Apply constraint to each element of the extracted sequence. */
@@ -240,7 +212,11 @@ object Validator {
   /** Apply constraint to each element of the extracted sequence.
     *  If invalid then compute and add prefix to the errors.
     */
-  def checkEach[T, E](elements: T => Seq[E], constraint: Validate[E], errorPrefix: Int => String): Validate[T] =
+  def checkEachWithErrorPrefix[T, E](
+    elements: T => Seq[E],
+    constraint: Validate[E],
+    errorPrefix: Int => String
+  ): Validate[T] =
     (entity: T) => {
       val es = elements(entity)
       if (es.nonEmpty)
@@ -263,7 +239,7 @@ object Validator {
   /** Apply constraint to each element of the extracted sequence if non empty.
     *  If invalid then compute and add prefix to the errors.
     */
-  def checkEachIfNonEmpty[T, E](
+  def checkEachIfNonEmptyWithErrorPrefix[T, E](
     elements: T => Seq[E],
     constraint: Validate[E],
     errorPrefix: Int => String
@@ -293,7 +269,7 @@ object Validator {
   /** Apply constraint to each element of the extracted sequence if non empty.
     *  If invalid then compute and add prefix to the errors.
     */
-  def checkEachIfSome[T, E](
+  def checkEachIfSomeWithErrorPrefix[T, E](
     extract: T => Option[Seq[E]],
     constraint: Validate[E],
     errorPrefix: Int => String,
@@ -301,7 +277,7 @@ object Validator {
   ): Validate[T] =
     (entity: T) =>
       extract(entity)
-        .map(checkEach(identity, constraint, errorPrefix))
+        .map(checkEachWithErrorPrefix(identity, constraint, errorPrefix))
         .getOrElse(
           if (isValidIfNone) Valid(()) else Invalid(List("Expected Some sequence but got None"))
         )
@@ -343,6 +319,15 @@ object Validator {
     (entity: T) =>
       if (tests.forall(f => f(entity))) Valid(())
       else Invalid(List(s"All of $expectations must be true"))
+
+  /** Check if all tests fails */
+  def checkIfAllFalse[T](
+    tests: Seq[T => Boolean],
+    expectations: String
+  ): Validate[T] =
+    (entity: T) =>
+      if (tests.forall(f => !f(entity))) Valid(())
+      else Invalid(List(s"All of $expectations must be false"))
 
   /** Check if at least one extracted property is defined. */
   def checkIfAtLeastOneIsDefined[T](
@@ -523,10 +508,13 @@ object Validator {
     def andWhenValid(otherValidate: Validate[T]): Validate[T] = Validator.whenValid[T](thisValidate, otherValidate)
     def andWhenInvalid(otherValidate: Validate[T]): Validate[T] = Validator.whenInvalid[T](thisValidate, otherValidate)
 
-    def @:(errorPrefix: String): Validate[T] = withPrefix(errorPrefix)
-    def withPrefix(errorPrefix: String): Validate[T] =
+    def @:(errorPrefix: String): Validate[T] = withErrorPrefix(errorPrefix)
+    def @@(errorPrefix: String): Validate[T] = withErrorPrefix(errorPrefix)
+
+    def withErrorPrefix(errorPrefix: String): Validate[T] =
       (entity: T) => thisValidate(entity).leftMap(_.map(e => s"$errorPrefix$e"))
-    def withComputedPrefix(errorPrefix: T => String): Validate[T] =
+
+    def withErrorPrefixComputed(errorPrefix: T => String): Validate[T] =
       (entity: T) =>
         thisValidate(entity).leftMap { r =>
           val prefix = errorPrefix(entity)
@@ -536,6 +524,13 @@ object Validator {
     def debug: Validate[T] =
       (entity: T) => {
         print(entity)
+        print(" => ")
+        thisValidate(entity).debug
+      }
+
+    def debugWith(show: T => String): Validate[T] =
+      (entity: T) => {
+        print(show(entity))
         print(" => ")
         thisValidate(entity).debug
       }
@@ -554,7 +549,7 @@ object Validator {
     def errorString(start: String, sep: String, end: String): Option[String] = errors.map(_.mkString(start, sep, end))
 
     def debug: Validated[List[String], Unit] = {
-      println(validated.bimap(e => s"Invalid(${e.mkString(", ")})", _ => "Valid"))
+      println(validated.fold(e => s"Invalid(${e.mkString(", ")})", _ => "Valid"))
       validated
     }
   }

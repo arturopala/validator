@@ -54,7 +54,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       Prop.all(
         emptyStringValidator("").isValid,
         ("foo: " @: nonEmptyStringValidator)("").errorString == Some("foo: string must be non-empty"),
-        (emptyStringValidator.withPrefix("@ "))(s"a$string").errorString == Some("@ string must be empty"),
+        (emptyStringValidator.withErrorPrefix("@ "))(s"a$string").errorString == Some("@ string must be empty"),
         nonEmptyStringValidator(s"a$string").isValid,
         Validator.allWithPrefix("foo_", nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
           Some(if (string.isEmpty) "foo_string must be non-empty" else "foo_string must be empty"),
@@ -281,7 +281,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val validateOnlyDigits = Validator.check[String](_.forall(_.isDigit), "all characters must be digits")
     def validateLength(length: Int) = Validator.check[String](_.length() == length, s"must have $length characters")
     val validate1: Validate[String] =
-      Validator.whenValid(validateStartsWithZero, validateLength(3) & validateOnlyDigits)
+      Validator.whenValid(validateStartsWithZero, validateLength(3) & validateOnlyDigits).debug
     val validate2: Validate[String] =
       validateStartsWithZero.andWhenValid(validateLength(3) & validateOnlyDigits)
     val validate3: Validate[String] =
@@ -439,7 +439,9 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
 
   property("Validator.checkFromEither(with error prefix) returns Valid only if condition returns Right") {
     val validate: Validate[Int] =
-      Validator.checkFromEither[Int]((i: Int) => if (i > 0) Right(i) else Left("must be positive"), "integer ")
+      Validator
+        .checkFromEither[Int]((i: Int) => if (i > 0) Right(i) else Left("must be positive"))
+        .withErrorPrefix("integer ")
 
     forAll { (int: Int) =>
       if (int > 0)
@@ -465,7 +467,9 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   property("Validator.checkProperty(with error prefix) returns Valid only if nested validator returns Valid") {
     val nonEmptyStringValidator = Validator.check[String](_.nonEmpty, "string must be non-empty")
     val validate: Validate[Foo] =
-      Validator.checkProperty[Foo, String]((foo: Foo) => foo.bar, nonEmptyStringValidator, "Foo.bar ")
+      Validator
+        .checkProperty[Foo, String]((foo: Foo) => foo.bar, nonEmptyStringValidator)
+        .withErrorPrefix("Foo.bar ")
 
     forAll { (string: String) =>
       if (string.nonEmpty)
@@ -511,7 +515,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val positiveIntegerValidator = Validator.check[Int](_ > 0, "must be positive integer")
     val validate: Validate[Foo] =
       Validator
-        .checkIfSome[Foo, Int]((foo: Foo) => foo.bazOpt, positiveIntegerValidator, "Foo.bazOpt ", isValidIfNone = true)
+        .checkIfSome[Foo, Int]((foo: Foo) => foo.bazOpt, positiveIntegerValidator, isValidIfNone = true)
+        .withErrorPrefix("Foo.bazOpt ")
 
     forAll { (int: Int) =>
       Prop.all(
@@ -530,7 +535,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val positiveIntegerValidator = Validator.check[Int](_ > 0, "must be positive integer")
     val validate: Validate[Foo] =
       Validator
-        .checkIfSome[Foo, Int]((foo: Foo) => foo.bazOpt, positiveIntegerValidator, "Foo.bazOpt ", isValidIfNone = false)
+        .checkIfSome[Foo, Int]((foo: Foo) => foo.bazOpt, positiveIntegerValidator, isValidIfNone = false)
+        .withErrorPrefix("Foo.bazOpt ")
 
     forAll { (int: Int) =>
       Prop.all(
@@ -568,7 +574,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     case class Ints(seq: Seq[Int])
     val negativeIntegerValidator = Validator.check[Int](_ < 0, "must be negative integer")
     val validate: Validate[Ints] =
-      Validator.checkEach[Ints, Int]((i: Ints) => i.seq, negativeIntegerValidator, (i: Int) => s"is[$i] ")
+      Validator
+        .checkEachWithErrorPrefix[Ints, Int]((i: Ints) => i.seq, negativeIntegerValidator, (i: Int) => s"is[$i] ")
 
     Prop.all(
       validate(Ints(Seq.empty)).isValid,
@@ -588,7 +595,11 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     case class Ints(seq: Seq[Int])
     val negativeIntegerValidator = Validator.check[Int](_ < 0, "must be negative integer")
     val validate: Validate[Ints] =
-      Validator.checkEach[Ints, Int]((i: Ints) => i.seq, negativeIntegerValidator, (_: Int) => s"each element of 'is' ")
+      Validator.checkEachWithErrorPrefix[Ints, Int](
+        (i: Ints) => i.seq,
+        negativeIntegerValidator,
+        (_: Int) => s"each element of 'is' "
+      )
 
     Prop.all(
       validate(Ints(Seq.empty)).isValid,
@@ -632,7 +643,11 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val negativeIntegerValidator = Validator.check[Int](_ < 0, "must be negative integer")
     val validate: Validate[Ints] =
       Validator
-        .checkEachIfNonEmpty[Ints, Int]((i: Ints) => i.seq, negativeIntegerValidator, (i: Int) => s"is[$i] ")
+        .checkEachIfNonEmptyWithErrorPrefix[Ints, Int](
+          (i: Ints) => i.seq,
+          negativeIntegerValidator,
+          (i: Int) => s"is[$i] "
+        )
 
     Prop.all(
       validate(Ints(Seq.empty)).isInvalid,
@@ -652,7 +667,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     case class Ints(seq: Seq[Int])
     val negativeIntegerValidator = Validator.check[Int](_ < 0, "must be negative integer")
     val validate: Validate[Ints] =
-      Validator.checkEachIfNonEmpty[Ints, Int](
+      Validator.checkEachIfNonEmptyWithErrorPrefix[Ints, Int](
         (i: Ints) => i.seq,
         negativeIntegerValidator,
         (_: Int) => s"each element of 'is' "
@@ -720,7 +735,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     case class Ints(seqOpt: Option[Seq[Int]])
     val positiveIntegerValidator = Validator.check[Int](_ > 0, "must be positive integer")
     val validate: Validate[Ints] =
-      Validator.checkEachIfSome[Ints, Int](
+      Validator.checkEachIfSomeWithErrorPrefix[Ints, Int](
         (i: Ints) => i.seqOpt,
         positiveIntegerValidator,
         (i: Int) => s"intsOpt[$i] ",
@@ -745,7 +760,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     case class Ints(seqOpt: Option[Seq[Int]])
     val positiveIntegerValidator = Validator.check[Int](_ > 0, "must be positive integer")
     val validate: Validate[Ints] =
-      Validator.checkEachIfSome[Ints, Int](
+      Validator.checkEachIfSomeWithErrorPrefix[Ints, Int](
         (i: Ints) => i.seqOpt,
         positiveIntegerValidator,
         (i: Int) => s"intsOpt[$i] ",
@@ -981,6 +996,41 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       validate(Bar(None, Some(0), Some(true), None)).isInvalid,
       validate(Bar(None, Some(0), Some(false), None)).isInvalid,
       validate(Bar(Some(""), Some(1), Some(false), Some(Seq(1, 2)))).isValid
+    )
+  }
+
+  property(
+    "Validator.checkIfAllFalse returns Valid only if all of the provided functions return true"
+  ) {
+    case class Bar(a: Option[String], b: Option[Int], c: Option[Boolean], d: Option[Seq[Int]])
+    val validate = Validator
+      .checkIfAllFalse[Bar](
+        Seq(_.a.isDefined, _.b.exists(_ > 0), _.c.contains(false), _.d.exists(_.size > 1)),
+        "a must be defined or b must be gt zero or c must contain false or d must be a sequence of at least two elements"
+      )
+      .debug
+
+    Prop.all(
+      validate(Bar(None, None, None, None)).isValid,
+      validate(Bar(Some(""), None, None, None)).isInvalid,
+      validate(Bar(None, Some(1), None, None)).isInvalid,
+      validate(Bar(None, None, Some(false), None)).isInvalid,
+      validate(Bar(None, None, None, Some(Seq(1, 2)))).isInvalid,
+      validate(Bar(None, Some(0), None, None)).isValid,
+      validate(Bar(None, None, Some(true), None)).isValid,
+      validate(Bar(None, None, None, Some(Seq(1)))).isValid,
+      validate(Bar(None, None, Some(true), Some(Seq(1, 2, 3)))).isInvalid,
+      validate(Bar(None, Some(0), Some(false), Some(Seq(1)))).isInvalid,
+      validate(Bar(None, Some(0), Some(true), Some(Seq(1)))).isValid,
+      validate(Bar(Some(""), Some(-1), Some(true), Some(Seq.empty))).isInvalid,
+      validate(Bar(Some(""), Some(0), Some(true), None)).isInvalid,
+      validate(Bar(Some(""), Some(0), None, None)).isInvalid,
+      validate(Bar(Some(""), None, None, None)).isInvalid,
+      validate(Bar(Some(""), None, None, Some(Seq(1)))).isInvalid,
+      validate(Bar(None, Some(1), Some(true), None)).isInvalid,
+      validate(Bar(None, Some(0), Some(true), None)).isValid,
+      validate(Bar(None, Some(0), Some(false), None)).isInvalid,
+      validate(Bar(Some(""), Some(1), Some(false), Some(Seq(1, 2)))).isInvalid
     )
   }
 

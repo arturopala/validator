@@ -9,7 +9,7 @@ Validator
 
 This is a micro-library for Scala
 
-    "com.github.arturopala" %% "validator" % "0.4.0"
+    "com.github.arturopala" %% "validator" % "0.5.0"
 
 Cross-compiles to Scala versions `2.13.6`, `2.12.15`, `3.1.0`, 
 and ScalaJS version `1.7.0`, and ScalaNative version `0.4.0`.

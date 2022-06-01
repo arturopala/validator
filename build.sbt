@@ -53,7 +53,6 @@ lazy val sharedSettings = Seq(
   scalacOptions.withRank(KeyRanks.Invisible) += "-Ywarn-unused", // required by `RemoveUnused` rule
   (Test / parallelExecution) := false,
   headerLicense := Some(HeaderLicense.ALv2("2021", developerName)),
-  libraryDependencies ++= Seq("org.typelevel" %%% "cats-core" % catsVersion),
   libraryDependencies ++= Seq(
     "org.scalameta" %%% "munit"            % mUnitVersion % Test,
     "org.scalameta" %%% "munit-scalacheck" % mUnitVersion % Test

@@ -18,15 +18,35 @@ and ScalaJS version `@SCALA_JS_VERSION@`, and ScalaNative version `@SCALA_NATIVE
 
 Motivation
 ---
-Writing validation rules for the complex data structure is a must for developers. There are multiple ways available in Scala to do validation, still one of the best is [Cats Validated](https://typelevel.org/cats/datatypes/validated.html). This library provides a thin wrapper around original `Validated` with a simpler API and opinionated type parameters. 
+Writing validation rules for the complex data structure is a must for developers. There are multiple ways available in Scala to do the validation but still one of the simplest ways to represent and manipulate validation results is to use the built-in `Either`. 
+
+This library provides a thin wrapper around `Either` with a simpler API and opinionated type parameters. 
 
 Here the validator is represented by the function type alias:
 
-    type Validate[T] = T => Validated[List[String], Unit]
+    type Validate[T] = T => Either[List[String], Unit]
 
 The rest of the API is focused on creating and combining instances of `Validate[T]`.
 
-Batteries included
+Check
+---
+
+Check is a simple variant of validate, combining test function with error message:
+
+```scala mdoc
+import com.github.arturopala.validator.Validator._
+
+val checkNonEmpty = Check[String](_.nonEmpty, "requires non-empty string")
+
+checkNonEmpty("")
+checkNonEmpty("a")
+
+checkNonEmpty.check("")
+checkNonEmpty.check("a")
+```
+
+
+All batteries included
 ---
 
 ```scala mdoc

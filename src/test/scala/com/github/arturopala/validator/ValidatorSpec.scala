@@ -26,6 +26,23 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
 
   case class Foo(bar: String, bazOpt: Option[Int] = None)
 
+  test("Either.left.map") {
+    assertEquals(Left(List("a", "b")).left.map(_.reverse), Left(List("b", "a")))
+    assertEquals(Right[List[String], Unit](()).left.map(_.reverse), Right(()))
+  }
+
+  test("nonEmptyStringValidator") {
+    val nonEmptyStringValidator = Validator.check[String](_.nonEmpty, "string must be non-empty")
+    assert(nonEmptyStringValidator("").isInvalid)
+    assert(nonEmptyStringValidator("a").isValid)
+  }
+
+  test("emptyStringValidator") {
+    val emptyStringValidator = Validator.check[String](_.isEmpty(), "string must be empty")
+    assert(emptyStringValidator("").isValid)
+    assert(emptyStringValidator("a").isInvalid)
+  }
+
   property("Validator.all combines provided validators to verify if all checks passes") {
     val nonEmptyStringValidator = Validator.check[String](_.nonEmpty, "string must be non-empty")
     val emptyStringValidator = Validator.check[String](_.isEmpty(), "string must be empty")
@@ -390,7 +407,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val validate1: Validate[String] =
       Validator.whenInvalid(validateStartsWithZero, validateNonEmpty & validateAllUpperCase)
     val validate2: Validate[String] =
-      validateStartsWithZero.andWhenInvalid(validateNonEmpty & validateAllUpperCase)
+      validateStartsWithZero.andwhenInvalid(validateNonEmpty & validateAllUpperCase)
     val validate3: Validate[String] =
       validateStartsWithZero ?! (validateNonEmpty & validateAllUpperCase)
 

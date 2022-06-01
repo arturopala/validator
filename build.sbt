@@ -6,9 +6,9 @@ val githubUserName = "arturopala"
 
 val scala213 = "2.13.6"
 val scala212 = "2.12.15"
-val scala3 = "3.1.0"
-val scalaJSVersion = "1.7.0"
-val scalaNativeVersion = "0.4.0"
+val scala3 = "3.1.1"
+val scalaJSVersion = "1.9.0"
+val scalaNativeVersion = "0.4.3"
 val mUnitVersion = "0.7.29"
 val catsVersion = "2.6.1"
 
@@ -37,6 +37,7 @@ inThisBuild(
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision,
     scalafixScalaBinaryVersion := "2.13",
+    libraryDependencies ++= Seq("org.typelevel" %%% "cats-core" % catsVersion),
     versionScheme := Some("early-semver")
   )
 )
@@ -54,7 +55,6 @@ lazy val sharedSettings = Seq(
   (Test / parallelExecution) := false,
   headerLicense := Some(HeaderLicense.ALv2("2021", developerName)),
   libraryDependencies ++= Seq(
-    "org.typelevel" %%% "cats-core"        % catsVersion,
     "org.scalameta" %%% "munit"            % mUnitVersion % Test,
     "org.scalameta" %%% "munit-scalacheck" % mUnitVersion % Test
   ),

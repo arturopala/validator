@@ -44,6 +44,24 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     }
   }
 
+  property("Validator.all combines provided checks to verify if all checks passes") {
+    val nonEmptyStringValidator = Check[String](_.nonEmpty, "string must be non-empty")
+    val emptyStringValidator = Check[String](_.isEmpty(), "string must be empty")
+    val validate: Check[String] = nonEmptyStringValidator && emptyStringValidator
+
+    forAll { (string: String) =>
+      Prop.all(
+        emptyStringValidator("").isValid,
+        nonEmptyStringValidator("").isInvalid,
+        emptyStringValidator(s"a$string").isInvalid,
+        nonEmptyStringValidator(s"a$string").isValid,
+        Validator[String](nonEmptyStringValidator, emptyStringValidator).apply(string).isInvalid,
+        Validator.all[String](nonEmptyStringValidator, emptyStringValidator).apply(string).isInvalid,
+        validate(string).isInvalid
+      )
+    }
+  }
+
   property("Validator.all(with error prefix) combines provided validators to verify if all checks passes") {
     val nonEmptyStringValidator = Validator.check[String](_.nonEmpty, "string must be non-empty")
     val emptyStringValidator = Validator.check[String](_.isEmpty(), "string must be empty")
@@ -59,6 +77,34 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         Validator.allWithPrefix("foo_", nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
           Some(if (string.isEmpty) "foo_string must be non-empty" else "foo_string must be empty"),
         Validator.allWithPrefix("bar/", nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
+          Some(if (string.isEmpty) "bar/string must be non-empty" else "bar/string must be empty"),
+        validate(string).errorString ==
+          Some(if (string.isEmpty) "foo: string must be non-empty" else "foo: string must be empty")
+      )
+    }
+  }
+
+  property("Validator.all(with error prefix) combines provided checks to verify if all checks passes") {
+    val nonEmptyStringValidator = Check[String](_.nonEmpty, "string must be non-empty")
+    val emptyStringValidator = Check[String](_.isEmpty(), "string must be empty")
+    val validate: Validate[String] =
+      Validator.allWithPrefix("foo: ", nonEmptyStringValidator, emptyStringValidator)
+
+    forAll { (string: String) =>
+      Prop.all(
+        emptyStringValidator("").isValid,
+        ("foo: " @: nonEmptyStringValidator)("").errorString == Some("foo: string must be non-empty"),
+        (emptyStringValidator.withErrorPrefix("@ "))(s"a$string").errorString == Some("@ string must be empty"),
+        nonEmptyStringValidator(s"a$string").isValid,
+        Validator
+          .allWithPrefix[String]("foo_", nonEmptyStringValidator, emptyStringValidator)
+          .apply(string)
+          .errorString ==
+          Some(if (string.isEmpty) "foo_string must be non-empty" else "foo_string must be empty"),
+        Validator
+          .allWithPrefix[String]("bar/", nonEmptyStringValidator, emptyStringValidator)
+          .apply(string)
+          .errorString ==
           Some(if (string.isEmpty) "bar/string must be non-empty" else "bar/string must be empty"),
         validate(string).errorString ==
           Some(if (string.isEmpty) "foo: string must be non-empty" else "foo: string must be empty")
@@ -87,6 +133,34 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
           Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty"),
         Validator
           .allWithComputedPrefix(calculatePrefix, nonEmptyStringValidator, emptyStringValidator)
+          .apply(string)
+          .errorString ==
+          Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty")
+      )
+    }
+  }
+
+  property("Validator.all(with calculated error prefix) combines provided checks to verify if all checks passes") {
+    val nonEmptyStringValidator = Check[String](_.nonEmpty, "string must be non-empty")
+    val emptyStringValidator = Check[String](_.isEmpty(), "string must be empty")
+
+    val calculatePrefix: String => String = s => s"${s.take(1)}: "
+
+    forAll { (string: String) =>
+      val f = string.take(1)
+      Prop.all(
+        Validator
+          .allWithComputedPrefix[String](calculatePrefix, nonEmptyStringValidator, emptyStringValidator)
+          .apply(string)
+          .errorString ==
+          Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty"),
+        Validator
+          .allWithComputedPrefix[String](calculatePrefix, nonEmptyStringValidator, emptyStringValidator)
+          .apply(string)
+          .errorString ==
+          Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty"),
+        Validator
+          .allWithComputedPrefix[String](calculatePrefix, nonEmptyStringValidator, emptyStringValidator)
           .apply(string)
           .errorString ==
           Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty")

@@ -559,4 +559,30 @@ object Validator {
     implicit val unitSemigroup: Semigroup[Unit] = Semigroup.instance((_, _) => ())
     implicit val stringSemigroup: Semigroup[String] = Semigroup.instance(_ + _)
   }
+
+  trait Check[A] extends Validate[A] {
+    def check(a: A): Either[String, Unit]
+
+    final def apply(a: A): Validated[List[String], Unit] =
+      check(a) match {
+        case Right(_)    => Valid(())
+        case Left(value) => Invalid(List(value))
+      }
+  }
+
+  object Check {
+    def apply[A](condition: A => Boolean, errorMessage: String): Check[A] =
+      new Check[A] {
+        def check(a: A): Either[String, Unit] =
+          Either.cond(condition(a), (), errorMessage)
+      }
+
+    implicit class ConditionOps[A](val thisCheck: Check[A]) {
+      final def &&(otherCheck: Check[A]): Check[A] =
+        new Check[A] {
+          def check(a: A): Either[String, Unit] =
+            thisCheck.check(a).flatMap(_ => otherCheck.check(a))
+        }
+    }
+  }
 }

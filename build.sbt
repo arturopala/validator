@@ -37,7 +37,6 @@ inThisBuild(
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision,
     scalafixScalaBinaryVersion := "2.13",
-    libraryDependencies ++= Seq("org.typelevel" %%% "cats-core" % catsVersion),
     versionScheme := Some("early-semver")
   )
 )
@@ -54,6 +53,7 @@ lazy val sharedSettings = Seq(
   scalacOptions.withRank(KeyRanks.Invisible) += "-Ywarn-unused", // required by `RemoveUnused` rule
   (Test / parallelExecution) := false,
   headerLicense := Some(HeaderLicense.ALv2("2021", developerName)),
+  libraryDependencies ++= Seq("org.typelevel" %%% "cats-core" % catsVersion),
   libraryDependencies ++= Seq(
     "org.scalameta" %%% "munit"            % mUnitVersion % Test,
     "org.scalameta" %%% "munit-scalacheck" % mUnitVersion % Test

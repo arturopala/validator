@@ -9,7 +9,7 @@ Validator
 
 This is a micro-library for Scala
 
-    "com.github.arturopala" %% "validator" % "0.8.0"
+    "com.github.arturopala" %% "validator" % "0.9.0"
 
 Cross-compiles to Scala versions `2.13.6`, `2.12.15`, `3.1.1`, 
 and ScalaJS version `1.9.0`, and ScalaNative version `0.4.3`.
@@ -62,7 +62,7 @@ import com.github.arturopala.validator.Validator._
 case class E(a: Int, b: String, c: Option[Int], d: Seq[Int], e: Either[String,E], f: Option[Seq[Int]], g: Boolean, h: Option[String])
 
 val divisibleByThree: Validate[Int] = check[Int](_ % 3 == 0, "must be divisible by three")
-// divisibleByThree: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12468/1487284643@4b3e2021
+// divisibleByThree: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12468/773560390@2dad724f
 
 val validateE: Validate[E] = any[E](
     checkEquals(_.a.toString, _.b, "a must be same as b"),
@@ -92,7 +92,7 @@ val validateE: Validate[E] = any[E](
     checkIfOnlyOneIsTrue(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 or g must be true"),
     checkIfOnlyOneSetIsTrue(Seq(Set(_.a.inRange(0,10), _.g), Set(_.g,_.h.isDefined)),"only (g and a must not be 0..10) or (g and h.isDefined) must be true"),
 )
-// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$12493/855216817@3ed093a6
+// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$12493/1685228045@9080508
 ```
 
 Usage

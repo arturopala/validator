@@ -577,10 +577,62 @@ object Validator {
       }
 
     implicit class ConditionOps[A](val thisCheck: Check[A]) {
+
+      /** concatenation */
       final def &&(otherCheck: Check[A]): Check[A] =
         new Check[A] {
           def check(a: A): Either[String, Unit] =
-            thisCheck.check(a).flatMap(_ => otherCheck.check(a))
+            thisCheck
+              .check(a)
+              .fold(
+                e1 =>
+                  otherCheck
+                    .check(a)
+                    .fold(e2 => Left(e1 + " and " + e2), _ => Left(e1)),
+                _ =>
+                  otherCheck
+                    .check(a)
+                    .fold(e2 => Left(e2), _ => Right(()))
+              )
+        }
+
+      /** alternative */
+      final def ||(otherCheck: Check[A]): Check[A] =
+        new Check[A] {
+          def check(a: A): Either[String, Unit] =
+            thisCheck
+              .check(a)
+              .fold(
+                e1 =>
+                  otherCheck
+                    .check(a)
+                    .fold(e2 => Left(e1 + " or " + e2), _ => Right(())),
+                _ => Right(())
+              )
+        }
+
+      /** conditional if true */
+      final def whenTrueThen(otherCheck: Check[A]): Check[A] =
+        new Check[A] {
+          def check(a: A): Either[String, Unit] =
+            thisCheck
+              .check(a)
+              .fold(
+                _ => Right(()),
+                _ => otherCheck.check(a)
+              )
+        }
+
+      /** conditional if false */
+      final def whenFalseThen(otherCheck: Check[A]): Check[A] =
+        new Check[A] {
+          def check(a: A): Either[String, Unit] =
+            thisCheck
+              .check(a)
+              .fold(
+                _ => otherCheck.check(a),
+                _ => Right(())
+              )
         }
     }
   }

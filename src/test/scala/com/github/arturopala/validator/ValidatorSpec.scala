@@ -31,6 +31,75 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     assertEquals(Right[List[String], Unit](()).left.map(_.reverse), Right(()))
   }
 
+  test("Check.apply") {
+    val c = Check[Int](a => a % 2 == 0, "number must be even")
+    assertEquals(c.check(0), Right(()))
+    assertEquals(c.check(2), Right(()))
+    assertEquals(c.check(4), Right(()))
+    assertEquals(c.check(1), Left("number must be even"))
+    assertEquals(c.check(3), Left("number must be even"))
+  }
+
+  test("Check && concatenation") {
+    val c1 = Check[Int](a => a % 2 == 0, "number must be even")
+    val c2 = Check[Int](a => a % 3 == 0, "number must be divisible by 3")
+    val c = c1 && c2
+    assertEquals(c.check(0), Right(()))
+    assertEquals(c.check(1), Left("number must be even and number must be divisible by 3"))
+    assertEquals(c.check(2), Left("number must be divisible by 3"))
+    assertEquals(c.check(3), Left("number must be even"))
+    assertEquals(c.check(4), Left("number must be divisible by 3"))
+    assertEquals(c.check(5), Left("number must be even and number must be divisible by 3"))
+    assertEquals(c.check(6), Right(()))
+    assertEquals(c.check(7), Left("number must be even and number must be divisible by 3"))
+  }
+
+  test("Check || alternative") {
+    val c1 = Check[Int](a => a % 2 == 0, "number must be even")
+    val c2 = Check[Int](a => a % 3 == 0, "number must be divisible by 3")
+    val c = c1 || c2
+    assertEquals(c.check(0), Right(()))
+    assertEquals(c.check(1), Left("number must be even or number must be divisible by 3"))
+    assertEquals(c.check(2), Right(()))
+    assertEquals(c.check(3), Right(()))
+    assertEquals(c.check(4), Right(()))
+    assertEquals(c.check(5), Left("number must be even or number must be divisible by 3"))
+    assertEquals(c.check(6), Right(()))
+    assertEquals(c.check(7), Left("number must be even or number must be divisible by 3"))
+  }
+
+  test("Check whenTrueThen") {
+    val c1 = Check[Int](a => a % 2 == 0, "number must be even")
+    val c2 = Check[Int](a => a % 3 == 0, "number must be divisible by 3")
+    val c = c1 whenTrueThen c2
+    assertEquals(c.check(0), Right(()))
+    assertEquals(c.check(1), Right(()))
+    assertEquals(c.check(2), Left("number must be divisible by 3"))
+    assertEquals(c.check(3), Right(()))
+    assertEquals(c.check(4), Left("number must be divisible by 3"))
+    assertEquals(c.check(5), Right(()))
+    assertEquals(c.check(6), Right(()))
+    assertEquals(c.check(7), Right(()))
+    assertEquals(c.check(8), Left("number must be divisible by 3"))
+    assertEquals(c.check(9), Right(()))
+  }
+
+  test("Check whenFalseThen") {
+    val c1 = Check[Int](a => a % 2 == 0, "number must be even")
+    val c2 = Check[Int](a => a % 3 == 0, "number must be divisible by 3")
+    val c = c1 whenFalseThen c2
+    assertEquals(c.check(0), Right(()))
+    assertEquals(c.check(1), Left("number must be divisible by 3"))
+    assertEquals(c.check(2), Right(()))
+    assertEquals(c.check(3), Right(()))
+    assertEquals(c.check(4), Right(()))
+    assertEquals(c.check(5), Left("number must be divisible by 3"))
+    assertEquals(c.check(6), Right(()))
+    assertEquals(c.check(7), Left("number must be divisible by 3"))
+    assertEquals(c.check(8), Right(()))
+    assertEquals(c.check(9), Right(()))
+  }
+
   test("nonEmptyStringValidator") {
     val nonEmptyStringValidator = Validator.check[String](_.nonEmpty, "string must be non-empty")
     assert(nonEmptyStringValidator("").isInvalid)

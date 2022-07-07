@@ -42,13 +42,20 @@ Check is a simple variant of validate, combining test function with error messag
 ```scala mdoc
 import com.github.arturopala.validator.Validator._
 
-val checkNonEmpty = Check[String](_.nonEmpty, "requires non-empty string")
+val c1 = check[Int](a => a % 2 == 0, "number must be even")
+val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
+val c3 = c1 and c2
+val c4 = c1 or c2
 
-checkNonEmpty("")
-checkNonEmpty("a")
-
-checkNonEmpty.check("")
-checkNonEmpty.check("a")
+c1.check(2)
+c1.check(3)
+c2.check(2)
+c2.check(3)
+c3.check(5)
+c3.check(6)
+c4.check(5)
+c4.check(6)
+c4.check(7)
 ```
 
 

@@ -493,6 +493,8 @@ object Validator {
   }
 
   final implicit class ValidateOps[T](val thisValidate: T => Either[List[String], Unit]) {
+    def asCheck: Check[T] = Check.fromValidate(thisValidate)
+
     def &(otherValidate: Validate[T]): Validate[T] = Validator.all(thisValidate, otherValidate)
     def |(otherValidate: Validate[T]): Validate[T] = Validator.any(thisValidate, otherValidate)
     def *[U](otherValidate: Validate[U]): Validate[(T, U)] = Validator.product(thisValidate, otherValidate)
@@ -531,7 +533,7 @@ object Validator {
       }
   }
 
-  final implicit class ValidatedOps(val validated: Either[List[String], Unit]) {
+  final implicit class ValidationResultOps(val validated: Either[List[String], Unit]) {
     final def combine(otherValidated: Either[List[String], Unit]): Either[List[String], Unit] =
       validated match {
         case Right(_) => otherValidated
@@ -566,7 +568,7 @@ object Validator {
   trait Check[-A] extends Validate[A] {
     def check(a: A): Either[String, Unit]
 
-    final def apply(a: A): Either[List[String], Unit] =
+    def apply(a: A): Either[List[String], Unit] =
       check(a) match {
         case Right(_)    => Right(())
         case Left(value) => Left(List(value))
@@ -586,6 +588,15 @@ object Validator {
           propertyCheck.check(extractProperty(a))
       }
 
+    def fromValidate[A](constraint: Validate[A]): Check[A] =
+      new Check[A] {
+        def check(a: A): Either[String, Unit] =
+          constraint(a).left.map(_.mkString(", "))
+
+        override def apply(a: A): Either[List[String], Unit] =
+          constraint(a)
+      }
+
     def fromEither[A](test: A => Either[String, Any]): Check[A] =
       new Check[A] {
         def check(a: A): Either[String, Unit] =
@@ -598,7 +609,7 @@ object Validator {
           test(a).map(_ => ()).toRight(errorMessage)
       }
 
-    implicit class ConditionOps[A](val thisCheck: Check[A]) {
+    implicit class CheckOps[A](val thisCheck: Check[A]) {
 
       final def &&(otherCheck: Check[A]): Check[A] =
         thisCheck.and(otherCheck)

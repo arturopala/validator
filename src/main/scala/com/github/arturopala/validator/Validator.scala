@@ -20,7 +20,7 @@ package com.github.arturopala.validator
 object Validator {
 
   /** The validator function. */
-  final type Validate[T] = T => Either[List[String], Unit]
+  final type Validate[-T] = T => Either[List[String], Unit]
 
   /** Combine provided validator functions. */
   def apply[T](constraints: Validate[T]*): Validate[T] =
@@ -150,32 +150,36 @@ object Validator {
         .foldLeft[Either[List[String], Unit]](Right(()))((v, fx) => v.combine(fx(entity)))
 
   /** Validate if the test passes, otherwise fail with error. */
-  def check[T](test: T => Boolean, error: String): Validate[T] =
-    (entity: T) => Either.cond(test(entity), (), error :: Nil)
+  def check[T](test: T => Boolean, error: String): Check[T] =
+    Check(test, error)
 
   /** Validate if two properties return the same value. */
-  def checkEquals[T, A](value1: T => A, value2: T => A, error: String): Validate[T] =
-    (entity: T) => Either.cond(value1(entity) == value2(entity), (), error :: Nil)
+  def checkEquals[T, A](value1: T => A, value2: T => A, error: String): Check[T] =
+    Check((entity: T) => value1(entity) == value2(entity), error)
 
   /** Validate if two properties return different value. */
-  def checkNotEquals[T, A](value1: T => A, value2: T => A, error: String): Validate[T] =
-    (entity: T) => Either.cond(value1(entity) != value2(entity), (), error :: Nil)
+  def checkNotEquals[T, A](value1: T => A, value2: T => A, error: String): Check[T] =
+    Check((entity: T) => value1(entity) != value2(entity), error)
 
   /** Validate if the test returns Right, otherwise fail with Left error. */
-  def checkFromEither[T](test: T => Either[String, Any]): Validate[T] =
-    (entity: T) => test(entity).map(_ => ()).left.map(_ :: Nil)
+  def checkFromEither[T](test: T => Either[String, Any]): Check[T] =
+    Check.fromEither(test)
 
   /** Validate if the test returns Some, otherwise fail with error. */
-  def checkIsDefined[T](test: T => Option[Any], error: String): Validate[T] =
-    (entity: T) => test(entity).map(_ => ()).toRight(error :: Nil)
+  def checkIsDefined[T](test: T => Option[Any], error: String): Check[T] =
+    Check.fromOption(test, error)
 
   /** Validate if the test returns None, otherwise fail with error. */
-  def checkIsEmpty[T](test: T => Option[Any], error: String): Validate[T] =
-    (entity: T) => if (test(entity).isEmpty) Right(()) else Left(error :: Nil)
+  def checkIsEmpty[T](test: T => Option[Any], error: String): Check[T] =
+    Check((entity: T) => test(entity).isEmpty, error)
 
   /** Apply constraint to the extracted property. */
   def checkProperty[T, E](element: T => E, constraint: Validate[E]): Validate[T] =
     (entity: T) => constraint(element(entity))
+
+  /** Apply check to the extracted nested attribute. */
+  def checkAttribute[T, E](attribute: T => E, check: Check[E]): Check[T] =
+    Check(attribute, check)
 
   /** Apply constraint to the extracted property if defined, otherwise follow isValidIfNone flag. */
   def checkIfSome[T, E](
@@ -559,7 +563,7 @@ object Validator {
     }
   }
 
-  trait Check[A] extends Validate[A] {
+  trait Check[-A] extends Validate[A] {
     def check(a: A): Either[String, Unit]
 
     final def apply(a: A): Either[List[String], Unit] =
@@ -576,10 +580,31 @@ object Validator {
           Either.cond(condition(a), (), errorMessage)
       }
 
+    def apply[A, B](extractProperty: A => B, propertyCheck: Check[B]): Check[A] =
+      new Check[A] {
+        def check(a: A): Either[String, Unit] =
+          propertyCheck.check(extractProperty(a))
+      }
+
+    def fromEither[A](test: A => Either[String, Any]): Check[A] =
+      new Check[A] {
+        def check(a: A): Either[String, Unit] =
+          test(a).map(_ => ())
+      }
+
+    def fromOption[A](test: A => Option[Any], errorMessage: String): Check[A] =
+      new Check[A] {
+        def check(a: A): Either[String, Unit] =
+          test(a).map(_ => ()).toRight(errorMessage)
+      }
+
     implicit class ConditionOps[A](val thisCheck: Check[A]) {
 
-      /** concatenation */
       final def &&(otherCheck: Check[A]): Check[A] =
+        thisCheck.and(otherCheck)
+
+      /** concatenation */
+      final def and(otherCheck: Check[A]): Check[A] =
         new Check[A] {
           def check(a: A): Either[String, Unit] =
             thisCheck
@@ -598,6 +623,9 @@ object Validator {
 
       /** alternative */
       final def ||(otherCheck: Check[A]): Check[A] =
+        thisCheck.or(otherCheck)
+
+      final def or(otherCheck: Check[A]): Check[A] =
         new Check[A] {
           def check(a: A): Either[String, Unit] =
             thisCheck
@@ -611,7 +639,7 @@ object Validator {
               )
         }
 
-      /** conditional if true */
+      /** run next check only if first is true */
       final def whenTrueThen(otherCheck: Check[A]): Check[A] =
         new Check[A] {
           def check(a: A): Either[String, Unit] =
@@ -623,7 +651,7 @@ object Validator {
               )
         }
 
-      /** conditional if false */
+      /** run next check only if first is false */
       final def whenFalseThen(otherCheck: Check[A]): Check[A] =
         new Check[A] {
           def check(a: A): Either[String, Unit] =
@@ -632,6 +660,18 @@ object Validator {
               .fold(
                 _ => otherCheck.check(a),
                 _ => Right(())
+              )
+        }
+
+      // run next check depending on the first one result
+      final def thenEither(checkIfTrue: Check[A], checkIfFalse: Check[A]): Check[A] =
+        new Check[A] {
+          def check(a: A): Either[String, Unit] =
+            thisCheck
+              .check(a)
+              .fold(
+                _ => checkIfFalse.check(a),
+                _ => checkIfTrue.check(a)
               )
         }
     }

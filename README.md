@@ -24,9 +24,15 @@ This library provides a thin wrapper around `Either` with a simpler API and opin
 
 Here the validator is represented by the function type alias:
 
-    type Validate[T] = T => Either[List[String], Unit]
+    type Validate[-T] = T => Either[List[String], Unit]
 
-The rest of the API is focused on creating and combining instances of `Validate[T]`.
+and a simple check wrapper:
+
+    trait Check[-T] extends Validate[T] {
+        def check(t: T): Either[String,Unit]
+    }
+
+The rest of the API is focused on creating and combining instances of `Validate[T]` and `Check[T]`.
 
 Check
 ---
@@ -61,8 +67,8 @@ import com.github.arturopala.validator.Validator._
 
 case class E(a: Int, b: String, c: Option[Int], d: Seq[Int], e: Either[String,E], f: Option[Seq[Int]], g: Boolean, h: Option[String])
 
-val divisibleByThree: Validate[Int] = check[Int](_ % 3 == 0, "must be divisible by three")
-// divisibleByThree: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12468/773560390@2dad724f
+val divisibleByThree = check[Int](_ % 3 == 0, "must be divisible by three")
+// divisibleByThree: Check[Int] = <function1>
 
 val validateE: Validate[E] = any[E](
     checkEquals(_.a.toString, _.b, "a must be same as b"),
@@ -84,15 +90,15 @@ val validateE: Validate[E] = any[E](
     checkIfAtLeastOneIsDefined(Seq(_.c,_.f),"c or f or both must be defined"),
     checkIfAtMostOneIsDefined(Seq(_.c,_.f),"none or c or f must be defined"),
     checkIfOnlyOneIsDefined(Seq(_.c,_.f),"c or f must be defined"),
-    checkIfOnlyOneSetIsDefined(Seq(Set(_.c,_.f), Set(_.c,_.h)),"only (c and f) or (c and h) must be defined"),
+    checkIfOnlyOneSetIsDefined[E](Seq(Set(_.c,_.f), Set(_.c,_.h)),"only (c and f) or (c and h) must be defined"),
     checkIfAllTrue(Seq(_.a.inRange(0,10), _.g),"a must be 0..10 if g is true"),
     checkIfAllFalse(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 if g is false"),
     checkIfAtLeastOneIsTrue(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 or g or both must be true"),
     checkIfAtMostOneIsTrue(Seq(_.a.inRange(0,10), _.g),"none or a must not be 0..10 or g must be true"),
     checkIfOnlyOneIsTrue(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 or g must be true"),
-    checkIfOnlyOneSetIsTrue(Seq(Set(_.a.inRange(0,10), _.g), Set(_.g,_.h.isDefined)),"only (g and a must not be 0..10) or (g and h.isDefined) must be true"),
+    checkIfOnlyOneSetIsTrue[E](Seq(Set(_.a.inRange(0,10), _.g), Set(_.g,_.h.isDefined)),"only (g and a must not be 0..10) or (g and h.isDefined) must be true"),
 )
-// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$12493/1685228045@9080508
+// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$9241/0x0000000802575840@2164e7f4
 ```
 
 Usage

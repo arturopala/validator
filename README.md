@@ -9,7 +9,7 @@ Validator
 
 This is a micro-library for Scala
 
-    "com.github.arturopala" %% "validator" % "0.9.0"
+    "com.github.arturopala" %% "validator" % "0.10.0"
 
 Cross-compiles to Scala versions `2.13.6`, `2.12.15`, `3.1.1`, 
 and ScalaJS version `1.9.0`, and ScalaNative version `0.4.3`.
@@ -117,7 +117,7 @@ val validateE: Validate[E] = any[E](
     checkIfOnlyOneIsTrue(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 or g must be true"),
     checkIfOnlyOneSetIsTrue[E](Seq(Set(_.a.inRange(0,10), _.g), Set(_.g,_.h.isDefined)),"only (g and a must not be 0..10) or (g and h.isDefined) must be true"),
 )
-// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$12495/166858632@3b2c4ddc
+// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$12509/1151395739@583c803a
 ```
 
 Usage

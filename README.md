@@ -98,7 +98,7 @@ val validateE: Validate[E] = any[E](
     checkIfOnlyOneIsTrue(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 or g must be true"),
     checkIfOnlyOneSetIsTrue[E](Seq(Set(_.a.inRange(0,10), _.g), Set(_.g,_.h.isDefined)),"only (g and a must not be 0..10) or (g and h.isDefined) must be true"),
 )
-// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$9241/0x0000000802575840@2164e7f4
+// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$12482/207305557@2dad724f
 ```
 
 Usage

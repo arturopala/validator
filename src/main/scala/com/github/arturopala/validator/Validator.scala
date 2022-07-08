@@ -589,13 +589,16 @@ object Validator {
       }
 
     def fromValidate[A](constraint: Validate[A]): Check[A] =
-      new Check[A] {
-        def check(a: A): Either[String, Unit] =
-          constraint(a).left.map(_.mkString(", "))
+      if (constraint.isInstanceOf[Check[A]])
+        constraint.asInstanceOf[Check[A]]
+      else
+        new Check[A] {
+          def check(a: A): Either[String, Unit] =
+            constraint(a).left.map(_.mkString(", "))
 
-        override def apply(a: A): Either[List[String], Unit] =
-          constraint(a)
-      }
+          override def apply(a: A): Either[List[String], Unit] =
+            constraint(a)
+        }
 
     def fromEither[A](test: A => Either[String, Any]): Check[A] =
       new Check[A] {

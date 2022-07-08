@@ -159,6 +159,20 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     assertEquals(c.check(7), Left("number must be even, number must be divisible by 3"))
   }
 
+  test("Check.asCheck") {
+    val c1 = check[Int](a => a % 2 == 0, "number must be even")
+    val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
+    val c = (c1 || c2).asCheck
+    assertEquals(c.check(0), Right(()))
+    assertEquals(c.check(1), Left("number must be even or number must be divisible by 3"))
+    assertEquals(c.check(2), Right(()))
+    assertEquals(c.check(3), Right(()))
+    assertEquals(c.check(4), Right(()))
+    assertEquals(c.check(5), Left("number must be even or number must be divisible by 3"))
+    assertEquals(c.check(6), Right(()))
+    assertEquals(c.check(7), Left("number must be even or number must be divisible by 3"))
+  }
+
   test("nonEmptyStringValidator") {
     val nonEmptyStringValidator = Validator.check[String](_.nonEmpty, "string must be non-empty")
     assert(nonEmptyStringValidator("").isInvalid)

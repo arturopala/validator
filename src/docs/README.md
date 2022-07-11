@@ -24,43 +24,41 @@ This library provides a thin wrapper around `Either` with a simpler API and opin
 
 Here the validator is represented by the function type alias:
 
-    type Validate[-T] = T => Either[List[String], Unit]
+    sealed trait Error
+    type Result = Either[Error, Unit]
 
-and a simple check wrapper:
+    type Validate[-T] = T => Result
 
-    trait Check[-T] extends Validate[T] {
-        def check(t: T): Either[String,Unit]
-    }
+The rest of the API is focused on creating and combining instances of `Validate[T]`.
 
-The rest of the API is focused on creating and combining instances of `Validate[T]` and `Check[T]`.
 
-Check
+All batteries included
 ---
-
-Check is a simple variant of validate, combining test function with error message:
 
 ```scala mdoc
 import com.github.arturopala.validator.Validator._
 
 val c1 = check[Int](a => a % 2 == 0, "number must be even")
 val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
+
 val c3 = c1 and c2
 val c4 = c1 or c2
 
-c1.check(2)
-c1.check(3)
-c2.check(2)
-c2.check(3)
-c3.check(5)
-c3.check(6)
-c4.check(5)
-c4.check(6)
-c4.check(7)
+val c5 = check[Int](a => a < 10, "number must be lower then 10")
+
+val c6 = c1 and (c2 or c5)
+val c7 = (c1 and c5) or c2
+
+c1(2)
+c1(3)
+c2(2)
+c2(3)
+c3(5)
+c3(6)
+c4(5)
+c4(6)
+c4(7)
 ```
-
-
-All batteries included
----
 
 ```scala mdoc
 import com.github.arturopala.validator.Validator._

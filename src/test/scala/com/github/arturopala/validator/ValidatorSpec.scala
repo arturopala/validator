@@ -28,149 +28,184 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
 
   test("Either.left.map") {
     assertEquals(Left(List("a", "b")).left.map(_.reverse), Left(List("b", "a")))
-    assertEquals(Right[List[String], Unit](()).left.map(_.reverse), Right(()))
+    assertEquals(Right[List[String], Unit](()).left.map(_.reverse), Valid)
   }
 
-  test("Check.apply") {
+  test("check") {
     val c = check[Int](a => a % 2 == 0, "number must be even")
-    assertEquals(c.check(0), Right(()))
-    assertEquals(c.check(2), Right(()))
-    assertEquals(c.check(4), Right(()))
-    assertEquals(c.check(1), Left("number must be even"))
-    assertEquals(c.check(3), Left("number must be even"))
+    assertEquals(c(0), Valid)
+    assertEquals(c(2), Valid)
+    assertEquals(c(4), Valid)
+    assertEquals(c(1), Invalid("number must be even"))
+    assertEquals(c(3), Invalid("number must be even"))
   }
 
-  test("Check and combinator") {
+  test("and combinator") {
     val c1 = check[Int](a => a % 2 == 0, "number must be even")
     val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
     val c = c1 and c2
-    assertEquals(c.check(0), Right(()))
-    assertEquals(c.check(1), Left("number must be even and number must be divisible by 3"))
-    assertEquals(c.check(2), Left("number must be divisible by 3"))
-    assertEquals(c.check(3), Left("number must be even"))
-    assertEquals(c.check(4), Left("number must be divisible by 3"))
-    assertEquals(c.check(5), Left("number must be even and number must be divisible by 3"))
-    assertEquals(c.check(6), Right(()))
-    assertEquals(c.check(7), Left("number must be even and number must be divisible by 3"))
+    assertEquals(c(0), Valid)
+    assertEquals(c(1).errorString, Some("number must be even and number must be divisible by 3"))
+    assertEquals(c(2).errorString, Some("number must be divisible by 3"))
+    assertEquals(c(3).errorString, Some("number must be even"))
+    assertEquals(c(4).errorString, Some("number must be divisible by 3"))
+    assertEquals(c(5).errorString, Some("number must be even and number must be divisible by 3"))
+    assertEquals(c(6), Valid)
+    assertEquals(c(7).errorString, Some("number must be even and number must be divisible by 3"))
   }
 
-  test("Check or combinator") {
+  test("or combinator") {
     val c1 = check[Int](a => a % 2 == 0, "number must be even")
     val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
     val c = c1 or c2
-    assertEquals(c.check(0), Right(()))
-    assertEquals(c.check(1), Left("number must be even or number must be divisible by 3"))
-    assertEquals(c.check(2), Right(()))
-    assertEquals(c.check(3), Right(()))
-    assertEquals(c.check(4), Right(()))
-    assertEquals(c.check(5), Left("number must be even or number must be divisible by 3"))
-    assertEquals(c.check(6), Right(()))
-    assertEquals(c.check(7), Left("number must be even or number must be divisible by 3"))
+    assertEquals(c(0), Valid)
+    assertEquals(c(1).errorString, Some("number must be even or number must be divisible by 3"))
+    assertEquals(c(2), Valid)
+    assertEquals(c(3), Valid)
+    assertEquals(c(4), Valid)
+    assertEquals(c(5).errorString, Some("number must be even or number must be divisible by 3"))
+    assertEquals(c(6), Valid)
+    assertEquals(c(7).errorString, Some("number must be even or number must be divisible by 3"))
   }
 
-  test("Check && combinator") {
+  test("& combinator") {
     val c1 = check[Int](a => a % 2 == 0, "number must be even")
     val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
-    val c = c1 && c2
-    assertEquals(c.check(0), Right(()))
-    assertEquals(c.check(1), Left("number must be even and number must be divisible by 3"))
-    assertEquals(c.check(2), Left("number must be divisible by 3"))
-    assertEquals(c.check(3), Left("number must be even"))
-    assertEquals(c.check(4), Left("number must be divisible by 3"))
-    assertEquals(c.check(5), Left("number must be even and number must be divisible by 3"))
-    assertEquals(c.check(6), Right(()))
-    assertEquals(c.check(7), Left("number must be even and number must be divisible by 3"))
+    val c = c1 & c2
+    assertEquals(c(0), Valid)
+    assertEquals(c(1).errorString, Some("number must be even and number must be divisible by 3"))
+    assertEquals(c(2).errorString, Some("number must be divisible by 3"))
+    assertEquals(c(3).errorString, Some("number must be even"))
+    assertEquals(c(4).errorString, Some("number must be divisible by 3"))
+    assertEquals(c(5).errorString, Some("number must be even and number must be divisible by 3"))
+    assertEquals(c(6), Valid)
+    assertEquals(c(7).errorString, Some("number must be even and number must be divisible by 3"))
   }
 
-  test("Check || combinator") {
+  test("| combinator") {
     val c1 = check[Int](a => a % 2 == 0, "number must be even")
     val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
-    val c = c1 || c2
-    assertEquals(c.check(0), Right(()))
-    assertEquals(c.check(1), Left("number must be even or number must be divisible by 3"))
-    assertEquals(c.check(2), Right(()))
-    assertEquals(c.check(3), Right(()))
-    assertEquals(c.check(4), Right(()))
-    assertEquals(c.check(5), Left("number must be even or number must be divisible by 3"))
-    assertEquals(c.check(6), Right(()))
-    assertEquals(c.check(7), Left("number must be even or number must be divisible by 3"))
+    val c = c1 | c2
+    assertEquals(c(0), Valid)
+    assertEquals(c(1).errorString, Some("number must be even or number must be divisible by 3"))
+    assertEquals(c(2), Valid)
+    assertEquals(c(3), Valid)
+    assertEquals(c(4), Valid)
+    assertEquals(c(5).errorString, Some("number must be even or number must be divisible by 3"))
+    assertEquals(c(6), Valid)
+    assertEquals(c(7).errorString, Some("number must be even or number must be divisible by 3"))
   }
 
-  test("Check whenTrueThen combinator") {
+  test("| with & combinator") {
     val c1 = check[Int](a => a % 2 == 0, "number must be even")
     val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
-    val c = c1 whenTrueThen c2
-    assertEquals(c.check(0), Right(()))
-    assertEquals(c.check(1), Right(()))
-    assertEquals(c.check(2), Left("number must be divisible by 3"))
-    assertEquals(c.check(3), Right(()))
-    assertEquals(c.check(4), Left("number must be divisible by 3"))
-    assertEquals(c.check(5), Right(()))
-    assertEquals(c.check(6), Right(()))
-    assertEquals(c.check(7), Right(()))
-    assertEquals(c.check(8), Left("number must be divisible by 3"))
-    assertEquals(c.check(9), Right(()))
+    val c3 = check[Int](a => a < 10, "number must be less than 10")
+    val c = (c1 | c2) & c3
+    assertEquals(c(0), Valid)
+    assertEquals(c(1).errorString, Some("number must be even or number must be divisible by 3"))
+    assertEquals(c(2), Valid)
+    assertEquals(c(3), Valid)
+    assertEquals(c(4), Valid)
+    assertEquals(c(5).errorString, Some("number must be even or number must be divisible by 3"))
+    assertEquals(c(6), Valid)
+    assertEquals(c(7).errorString, Some("number must be even or number must be divisible by 3"))
+    assertEquals(c(10).errorString, Some("number must be less than 10"))
+    assertEquals(
+      c(11).errorString,
+      Some("(number must be even or number must be divisible by 3) and number must be less than 10")
+    )
+    assertEquals(c(12).errorString, Some("number must be less than 10"))
   }
 
-  test("Check whenFalseThen combinator") {
+  test("| with | combinator") {
     val c1 = check[Int](a => a % 2 == 0, "number must be even")
     val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
-    val c = c1 whenFalseThen c2
-    assertEquals(c.check(0), Right(()))
-    assertEquals(c.check(1), Left("number must be divisible by 3"))
-    assertEquals(c.check(2), Right(()))
-    assertEquals(c.check(3), Right(()))
-    assertEquals(c.check(4), Right(()))
-    assertEquals(c.check(5), Left("number must be divisible by 3"))
-    assertEquals(c.check(6), Right(()))
-    assertEquals(c.check(7), Left("number must be divisible by 3"))
-    assertEquals(c.check(8), Right(()))
-    assertEquals(c.check(9), Right(()))
+    val c3 = check[Int](a => a > 10, "number must be greater than 10")
+    val c = c1 | c2 | c3
+    assertEquals(c(0), Valid)
+    assertEquals(
+      c(1).errorString,
+      Some("number must be even or number must be divisible by 3 or number must be greater than 10")
+    )
+    assertEquals(c(2), Valid)
+    assertEquals(c(3), Valid)
+    assertEquals(c(4), Valid)
+    assertEquals(
+      c(5).errorString,
+      Some("number must be even or number must be divisible by 3 or number must be greater than 10")
+    )
+    assertEquals(c(6), Valid)
+    assertEquals(
+      c(7).errorString,
+      Some("number must be even or number must be divisible by 3 or number must be greater than 10")
+    )
+    assertEquals(c(8), Valid)
+    assertEquals(c(9), Valid)
+    assertEquals(c(10), Valid)
+    assertEquals(c(11), Valid)
+    assertEquals(c(12), Valid)
   }
 
-  test("Check thenEither combinator") {
-    val c1 = check[Int](a => a % 2 == 0, "number must be even")
-    val c2 = check[Int](a => a % 4 == 0, "number must be divisible by 4")
-    val c3 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
-    val c = c1 thenEither (c2, c3)
-    assertEquals(c.check(0), Right(()))
-    assertEquals(c.check(1), Left("number must be divisible by 3"))
-    assertEquals(c.check(2), Left("number must be divisible by 4"))
-    assertEquals(c.check(3), Right(()))
-    assertEquals(c.check(4), Right(()))
-    assertEquals(c.check(5), Left("number must be divisible by 3"))
-    assertEquals(c.check(6), Left("number must be divisible by 4"))
-    assertEquals(c.check(7), Left("number must be divisible by 3"))
-    assertEquals(c.check(8), Right(()))
-    assertEquals(c.check(9), Right(()))
-  }
-
-  test("Validate.asCheck") {
+  test("& with | combinator") {
     val c1 = check[Int](a => a % 2 == 0, "number must be even")
     val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
-    val c = Validator.any(c1, c2).asCheck
-    assertEquals(c.check(0), Right(()))
-    assertEquals(c.check(1), Left("number must be even, number must be divisible by 3"))
-    assertEquals(c.check(2), Right(()))
-    assertEquals(c.check(3), Right(()))
-    assertEquals(c.check(4), Right(()))
-    assertEquals(c.check(5), Left("number must be even, number must be divisible by 3"))
-    assertEquals(c.check(6), Right(()))
-    assertEquals(c.check(7), Left("number must be even, number must be divisible by 3"))
+    val c3 = check[Int](a => a > 10, "number must be greater than 10")
+    val c = (c1 & c2) | c3
+    assertEquals(c(0), Valid)
+    assertEquals(
+      c(1).errorString,
+      Some("(number must be even and number must be divisible by 3) or number must be greater than 10")
+    )
+    assertEquals(c(2).errorString, Some("number must be divisible by 3 or number must be greater than 10"))
+    assertEquals(c(3).errorString, Some("number must be even or number must be greater than 10"))
+    assertEquals(c(4).errorString, Some("number must be divisible by 3 or number must be greater than 10"))
+    assertEquals(
+      c(5).errorString,
+      Some("(number must be even and number must be divisible by 3) or number must be greater than 10")
+    )
+    assertEquals(c(6), Valid)
+    assertEquals(
+      c(7).errorString,
+      Some("(number must be even and number must be divisible by 3) or number must be greater than 10")
+    )
+    assertEquals(c(11), Valid)
+    assertEquals(c(12), Valid)
   }
 
-  test("Check.asCheck") {
+  test("& with & combinator") {
     val c1 = check[Int](a => a % 2 == 0, "number must be even")
     val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
-    val c = (c1 || c2).asCheck
-    assertEquals(c.check(0), Right(()))
-    assertEquals(c.check(1), Left("number must be even or number must be divisible by 3"))
-    assertEquals(c.check(2), Right(()))
-    assertEquals(c.check(3), Right(()))
-    assertEquals(c.check(4), Right(()))
-    assertEquals(c.check(5), Left("number must be even or number must be divisible by 3"))
-    assertEquals(c.check(6), Right(()))
-    assertEquals(c.check(7), Left("number must be even or number must be divisible by 3"))
+    val c3 = check[Int](a => a < 10, "number must be lower than 10")
+    val c = c1 & c2 & c3
+    assertEquals(c(0), Valid)
+    assertEquals(
+      c(1).errorString,
+      Some("number must be even and number must be divisible by 3")
+    )
+    assertEquals(c(2).errorString, Some("number must be divisible by 3"))
+    assertEquals(c(3).errorString, Some("number must be even"))
+    assertEquals(c(4).errorString, Some("number must be divisible by 3"))
+    assertEquals(
+      c(5).errorString,
+      Some("number must be even and number must be divisible by 3")
+    )
+    assertEquals(c(6), Valid)
+    assertEquals(
+      c(7).errorString,
+      Some("number must be even and number must be divisible by 3")
+    )
+    assertEquals(
+      c(10).errorString,
+      Some("number must be divisible by 3 and number must be lower than 10")
+    )
+    assertEquals(
+      c(11).errorString,
+      Some("number must be even and number must be divisible by 3 and number must be lower than 10")
+    )
+    assertEquals(
+      c(12).errorString,
+      Some("number must be lower than 10")
+    )
   }
 
   test("nonEmptyStringValidator") {
@@ -204,9 +239,9 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   property("Validator.all combines provided checks to verify if all checks passes") {
-    val nonEmptyStringValidator = Check[String](_.nonEmpty, "string must be non-empty")
-    val emptyStringValidator = Check[String](_.isEmpty(), "string must be empty")
-    val validate: Check[String] = nonEmptyStringValidator && emptyStringValidator
+    val nonEmptyStringValidator = check[String](_.nonEmpty, "string must be non-empty")
+    val emptyStringValidator = check[String](_.isEmpty(), "string must be empty")
+    val validate: Validate[String] = nonEmptyStringValidator & emptyStringValidator
 
     forAll { (string: String) =>
       Prop.all(
@@ -244,8 +279,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   property("Validator.all(with error prefix) combines provided checks to verify if all checks passes") {
-    val nonEmptyStringValidator = Check[String](_.nonEmpty, "string must be non-empty")
-    val emptyStringValidator = Check[String](_.isEmpty(), "string must be empty")
+    val nonEmptyStringValidator = check[String](_.nonEmpty, "string must be non-empty")
+    val emptyStringValidator = check[String](_.isEmpty(), "string must be empty")
     val validate: Validate[String] =
       Validator.allWithPrefix("foo: ", nonEmptyStringValidator, emptyStringValidator)
 
@@ -300,8 +335,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   property("Validator.all(with calculated error prefix) combines provided checks to verify if all checks passes") {
-    val nonEmptyStringValidator = Check[String](_.nonEmpty, "string must be non-empty")
-    val emptyStringValidator = Check[String](_.isEmpty(), "string must be empty")
+    val nonEmptyStringValidator = check[String](_.nonEmpty, "string must be non-empty")
+    val emptyStringValidator = check[String](_.isEmpty(), "string must be empty")
 
     val calculatePrefix: String => String = s => s"${s.take(1)}: "
 
@@ -348,14 +383,14 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
           Validator.any(hasDigitValidator, hasLowerCaseValidator).apply(s"$a-$a").isValid,
           Validator.any(hasDigitValidator, hasLowerCaseValidator).apply(s"$d-$d").isValid,
           Validator.any(hasDigitValidator, hasLowerCaseValidator).apply(s"$d-$a").isValid,
-          validate(s"${a.toUpper}" * d.toInt).errorString(", ") == Some(
-            "some characters must be digits, some characters must be lower case"
+          validate(s"${a.toUpper}" * d.toInt).errorString == Some(
+            "some characters must be digits or some characters must be lower case"
           ),
           Validator
             .any(hasDigitValidator, hasLowerCaseValidator)
             .apply(s"${a.toUpper}" * d.toInt)
-            .errorString(", ") == Some(
-            "some characters must be digits, some characters must be lower case"
+            .errorString == Some(
+            "some characters must be digits or some characters must be lower case"
           )
         )
     }
@@ -376,8 +411,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
           Validator
             .anyWithPrefix("foo_", hasDigitValidator, hasLowerCaseValidator)
             .apply(s"${a.toUpper}" * d.toInt)
-            .errorString(", ") == Some(
-            "foo_some characters must be digits, foo_some characters must be lower case"
+            .errorString == Some(
+            "foo_some characters must be digits or foo_some characters must be lower case"
           )
         )
     }
@@ -398,8 +433,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
           Validator
             .anyWithComputedPrefix(calculatePrefix, hasDigitValidator, hasLowerCaseValidator)
             .apply(s"${a.toUpper}" * d.toInt)
-            .errorString(", ") == Some(
-            s"${a.toUpper}_some characters must be digits, ${a.toUpper}_some characters must be lower case"
+            .errorString == Some(
+            s"${a.toUpper}_some characters must be digits or ${a.toUpper}_some characters must be lower case"
           )
         )
     }
@@ -514,7 +549,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val validateOnlyDigits = Validator.check[String](_.forall(_.isDigit), "all characters must be digits")
     def validateLength(length: Int) = Validator.check[String](_.length() == length, s"must have $length characters")
     val validate1: Validate[String] =
-      Validator.whenValid(validateStartsWithZero, validateLength(3) & validateOnlyDigits).debug
+      Validator.whenValid(validateStartsWithZero, validateLength(3) & validateOnlyDigits)
     val validate2: Validate[String] =
       validateStartsWithZero.andWhenValid(validateLength(3) & validateOnlyDigits)
     val validate3: Validate[String] =
@@ -591,7 +626,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
           hasDigitValidator(a).errorString == Some("character must be a digit"),
           hasLowerCaseValidator(a.toUpper).errorString == Some("character must be lower case"),
           validate.apply((d, a)).isValid,
-          validate.apply((a, d)).errorString == Some("character must be a digit,character must be lower case")
+          validate.apply((a, d)).errorString == Some("character must be a digit and character must be lower case")
         )
     }
   }
@@ -688,32 +723,6 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val nonEmptyStringValidator: Validate[String] = Validator.check[String](_.nonEmpty, "string must be non-empty")
     val validate: Validate[Foo] =
       Validator.checkProperty((foo: Foo) => foo.bar, nonEmptyStringValidator)
-
-    forAll { (string: String) =>
-      if (string.nonEmpty)
-        validate(Foo(string)).isValid
-      else
-        validate(Foo(string)).errorString == Some("string must be non-empty")
-    }
-  }
-
-  property("Validator.checkAttribute returns Valid only if extracted property passes check") {
-    val nonEmptyStringValidator: Check[String] = Validator.check[String](_.nonEmpty, "string must be non-empty")
-    val validate: Check[Foo] =
-      Validator.checkAttribute((foo: Foo) => foo.bar, nonEmptyStringValidator)
-
-    forAll { (string: String) =>
-      if (string.nonEmpty)
-        validate(Foo(string)).isValid
-      else
-        validate(Foo(string)).errorString == Some("string must be non-empty")
-    }
-  }
-
-  property("Validator.checkAttribute (anonymous function) returns Valid only if extracted property passes check") {
-    val nonEmptyStringValidator: Check[String] = Validator.check[String](_.nonEmpty, "string must be non-empty")
-    val validate: Check[Foo] =
-      Validator.checkAttribute(_.bar, nonEmptyStringValidator)
 
     forAll { (string: String) =>
       if (string.nonEmpty)
@@ -1267,7 +1276,6 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         Seq(_.a.isDefined, _.b.exists(_ > 0), _.c.contains(false), _.d.exists(_.size > 1)),
         "a must be defined or b must be gt zero or c must contain false or d must be a sequence of at least two elements"
       )
-      .debug
 
     Prop.all(
       validate(Bar(None, None, None, None)).isValid,

@@ -9,7 +9,7 @@ Validator
 
 This is a micro-library for Scala
 
-    "com.github.arturopala" %% "validator" % "0.13.0"
+    "com.github.arturopala" %% "validator" % "0.14.0"
 
 Cross-compiles to Scala versions `2.13.6`, `2.12.15`, `3.1.1`, 
 and ScalaJS version `1.10.1`, and ScalaNative version `0.4.5`.
@@ -39,22 +39,22 @@ All batteries included
 import com.github.arturopala.validator.Validator._
 
 val c1 = check[Int](a => a % 2 == 0, "number must be even")
-// c1: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12502/321954460@6d8aeee4
+// c1: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12549/887513610@347865a4
 val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
-// c2: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12502/321954460@5d4826ef
+// c2: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12549/887513610@e215e95
 
 val c3 = c1 and c2
-// c3: Validate[Int] = com.github.arturopala.validator.Validator$ValidateOps$$Lambda$12503/2097521160@273949
+// c3: Validate[Int] = com.github.arturopala.validator.Validator$ValidateOps$$Lambda$12550/626416914@701f90be
 val c4 = c1 or c2
-// c4: Validate[Int] = com.github.arturopala.validator.Validator$ValidateOps$$Lambda$12504/2041605331@1d776ae5
+// c4: Validate[Int] = com.github.arturopala.validator.Validator$ValidateOps$$Lambda$12551/1116336399@4087eba0
 
 val c5 = check[Int](a => a < 10, "number must be lower then 10")
-// c5: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12502/321954460@60c4962d
+// c5: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12549/887513610@3663560b
 
 val c6 = c1 and (c2 or c5)
-// c6: Validate[Int] = com.github.arturopala.validator.Validator$ValidateOps$$Lambda$12503/2097521160@7c27bb84
+// c6: Validate[Int] = com.github.arturopala.validator.Validator$ValidateOps$$Lambda$12550/626416914@323273a4
 val c7 = (c1 and c5) or c2
-// c7: Validate[Int] = com.github.arturopala.validator.Validator$ValidateOps$$Lambda$12504/2041605331@45f33838
+// c7: Validate[Int] = com.github.arturopala.validator.Validator$ValidateOps$$Lambda$12551/1116336399@3e249f3c
 
 c1(2)
 // res0: Result = Right(value = ())
@@ -105,7 +105,7 @@ import com.github.arturopala.validator.Validator._
 case class E(a: Int, b: String, c: Option[Int], d: Seq[Int], e: Either[String,E], f: Option[Seq[Int]], g: Boolean, h: Option[String])
 
 val divisibleByThree = check[Int](_ % 3 == 0, "must be divisible by three")
-// divisibleByThree: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12502/321954460@65f84656
+// divisibleByThree: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12549/887513610@2d9b9fdd
 
 val validateE: Validate[E] = any[E](
     checkEquals(_.a.toString, _.b, "a must be same as b"),
@@ -135,7 +135,7 @@ val validateE: Validate[E] = any[E](
     checkIfOnlyOneIsTrue(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 or g must be true"),
     checkIfOnlyOneSetIsTrue[E](Seq(Set(_.a.inRange(0,10), _.g), Set(_.g,_.h.isDefined)),"only (g and a must not be 0..10) or (g and h.isDefined) must be true"),
 )
-// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$12535/105683207@bb08ad4
+// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$12582/800539428@7804115b
 ```
 
 Usage

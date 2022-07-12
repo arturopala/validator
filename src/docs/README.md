@@ -32,38 +32,64 @@ Here the validator is represented by the function type alias:
 The rest of the API is focused on creating and combining instances of `Validate[T]`.
 
 
-All batteries included
+Simple example
 ---
 
 ```scala mdoc
-import com.github.arturopala.validator.Validator._
+    import com.github.arturopala.validator.Validator._
 
-val c1 = check[Int](a => a % 2 == 0, "number must be even")
-val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
+    case class Address(street: String, town: String, postcode: String, country: String)
+    case class PhoneNumber(prefix: String, number: String, description: String)
+    case class Contact(name: String, address: Address, phoneNumbers: Seq[PhoneNumber])
 
-val c3 = c1 and c2
-val c4 = c1 or c2
+    object Country {
+    val codes = Set("en", "de", "fr")
+    val telephonePrefixes = Set("+44", "+41", "+42")
+    }
 
-val c5 = check[Int](a => a < 10, "number must be lower then 10")
+    val postcodeCheck = check[String](_.matches("""\d{5}"""), "address.postcode.invalid")
+    val countryCheck = check[String](_.isOneOf(Country.codes), "address.country.invalid")
+    val phoneNumberPrefixCheck = check[String](_.isOneOf(Country.telephonePrefixes), "address.phone.prefix.invalid")
+    val phoneNumberValueCheck = check[String](_.matches("""\d{7}"""), "address.phone.prefix.invalid")
 
-val c6 = c1 and (c2 or c5)
-val c7 = (c1 and c5) or c2
+    val addressCheck = all[Address](
+        check(_.street.nonEmpty, "address.street.empty"),
+        check(_.town.nonEmpty, "address.town.empty"),
+        checkProperty(_.postcode, postcodeCheck),
+        checkProperty(_.country, countryCheck)
+    )
 
-c1(2)
-c1(3)
-c2(2)
-c2(3)
-c3(5)
-c3(6)
-c4(5)
-c4(6)
-c4(7)
-c6(5)
-c6(6)
-c7(5)
-c7(6)
-c7(7)
+    val phoneNumberCheck = all[PhoneNumber](
+        checkProperty(_.prefix, phoneNumberPrefixCheck),
+        checkProperty(_.number, phoneNumberValueCheck)
+    )
+
+    val contactCheck = all[Contact](
+        check(_.name.nonEmpty, "contact.name.empty"),
+        checkProperty(_.address, addressCheck),
+        checkEach(_.phoneNumbers, phoneNumberCheck)
+    )
+
+    contactCheck(
+        Contact(
+            name = "Foo Bar",
+            address = Address(street = "Sesame Street 1", town = "Cookieburgh", country = "en", postcode = "00001"),
+            phoneNumbers = Seq(PhoneNumber("+44", "1234567", "ceo"), PhoneNumber("+41", "7654321", "sales"))
+        )
+    )
+
+    contactCheck(
+        Contact(
+            name = "",
+            address = Address(street = "", town = "", country = "ca", postcode = "foobar"),
+            phoneNumbers = Seq(PhoneNumber("+1", "11111111111", "ceo"), PhoneNumber("+01", "00000000", "sales"))
+        )
+    ).errorsOption
+
 ```
+
+All batteries included
+---
 
 ```scala mdoc
 import com.github.arturopala.validator.Validator._
@@ -215,10 +241,10 @@ validateFoo(Foo("X",Some(3),false,Seq("abc",""),Bar(-1,Some(Seq(7,8,9)))))
 
 Tag validator with prefix:
 ```scala mdoc
-evenOrPositive.apply(-1).errorString
-("prefix: " @: evenOrPositive).apply(-1).errorString
-evenOrPositive.withErrorPrefix("foo_").apply(-1).errorString
-evenOrPositive.withErrorPrefixComputed(i => s"($i) ").apply(-1).errorString
+evenOrPositive.apply(-1).errorsSummaryOption
+("prefix: " @: evenOrPositive).apply(-1).errorsSummaryOption
+evenOrPositive.withErrorPrefix("foo_").apply(-1).errorsSummaryOption
+evenOrPositive.withErrorPrefixComputed(i => s"($i) ").apply(-1).errorsSummaryOption
 ```
 
 Debug validator:

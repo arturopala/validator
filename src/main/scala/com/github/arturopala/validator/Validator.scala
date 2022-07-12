@@ -20,11 +20,15 @@ package com.github.arturopala.validator
 object Validator {
 
   sealed trait Error {
+
+    /** Returns first error message. */
     def headMessage: String
+
+    /** Returns all error messages in a depth-first flattened sequence. */
     def messages: Seq[String]
 
-    /** Combines all messages into a single sentence using prefixes, joiners and suffixes if defined. */
-    def mkString: String
+    /** Combines all erorro messages into a single sentence. */
+    def summary: String
 
     def map(f: String => String): Error
 
@@ -32,10 +36,11 @@ object Validator {
     def or(other: Error): Error
   }
 
+  /** Single error representation. */
   final case class Single private[Validator] (message: String) extends Error {
     override def headMessage: String = message
     override def messages: Seq[String] = Seq(message)
-    override def mkString: String = message
+    override def summary: String = message
     override def map(f: String => String): Error = Single(f(message))
     override def and(other: Error): Error = other match {
       case Single(otherMessage) if message == otherMessage => this
@@ -48,15 +53,17 @@ object Validator {
       case _                                               => Or(Seq(this, other))
     }
   }
+
+  /** Sequence of errors resulting from the logical conjunction of constraints. */
   final case class And private[Validator] (errors: Seq[Error]) extends Error {
     override def headMessage: String = errors.head.headMessage
     override def messages: Seq[String] = errors.flatMap(_.messages)
 
-    override def mkString: String = errors
+    override def summary: String = errors
       .map {
         case Single(m) => m
-        case e: And    => e.mkString
-        case e: Or     => s"(${e.mkString})"
+        case e: And    => e.summary
+        case e: Or     => s"(${e.summary})"
       }
       .mkString(" and ")
 
@@ -75,15 +82,16 @@ object Validator {
     }
   }
 
+  /** Sequence of errors resulting from the logical disjunction of constraints. */
   final case class Or private[Validator] (errors: Seq[Error]) extends Error {
     override def headMessage: String = errors.head.headMessage
     override def messages: Seq[String] = errors.flatMap(_.messages)
 
-    override def mkString: String = errors
+    override def summary: String = errors
       .map {
         case Single(m) => m
-        case e: And    => s"(${e.mkString})"
-        case e: Or     => e.mkString
+        case e: And    => s"(${e.summary})"
+        case e: Or     => e.summary
       }
       .mkString(" or ")
 
@@ -133,14 +141,14 @@ object Validator {
 
   def never[T]: Validate[T] = (_: T) => Left(Error("this validation never succeeds"))
 
-  /** Succeed only if all constraints are valid. */
+  /** Conjuction. Succeeds only if all constraints are valid. */
   def all[T](constraints: Validate[T]*): Validate[T] = apply(constraints: _*)
 
-  /** Succeed only if all constraints are valid, otherwise prepend errorPrefix. */
+  /** Conjuction. Succeeds only if all constraints are valid, otherwise prepend errorPrefix. */
   def allWithPrefix[T](errorPrefix: String, constraints: Validate[T]*): Validate[T] =
     (entity: T) => all(constraints: _*)(entity).left.map(_.map(e => s"$errorPrefix$e"))
 
-  /** Succeed only if all constraints are valid, otherwise prepend calculated errorPrefix. */
+  /** Conjuction. Succeeds only if all constraints are valid, otherwise prepend calculated errorPrefix. */
   def allWithComputedPrefix[T](errorPrefix: T => String, constraints: Validate[T]*): Validate[T] =
     (entity: T) =>
       all(constraints: _*)(entity).left.map { r =>
@@ -148,7 +156,7 @@ object Validator {
         r.map(e => s"$prefix$e")
       }
 
-  /** Succeed if any of the constraints is valid. */
+  /** Disjunction. Succeeds if any of the constraints is valid. */
   def any[T](constraints: Validate[T]*): Validate[T] =
     (entity: T) =>
       if (constraints.isEmpty) Valid
@@ -158,11 +166,11 @@ object Validator {
         else results.reduce((a, b) => a or b)
       }
 
-  /** Succeed if any of the constraints is valid, otherwise prepend errorPrefix. */
+  /** Disjunction. Succeeds if any of the constraints is valid, otherwise prepend errorPrefix. */
   def anyWithPrefix[T](errorPrefix: String, constraints: Validate[T]*): Validate[T] =
     (entity: T) => any(constraints: _*)(entity).left.map(_.map(e => s"$errorPrefix$e"))
 
-  /** Succeed if any of the constraints is valid, otherwise prepend errorPrefix. */
+  /** Disjunction. Succeeds if any of the constraints is valid, otherwise prepend errorPrefix. */
   def anyWithComputedPrefix[T](errorPrefix: T => String, constraints: Validate[T]*): Validate[T] =
     (entity: T) =>
       any(constraints: _*)(entity).left.map { r =>
@@ -224,7 +232,7 @@ object Validator {
   def product[A, B](constraintA: Validate[A], constraintB: Validate[B]): Validate[(A, B)] =
     (entity: (A, B)) => constraintA(entity._1).and(constraintB(entity._2))
 
-  /** Combine three constraints to make a constraint on a tuple. */
+  /** Combine three constraints to make a constraint on a triplet. */
   def product[A, B, C](
     constraintA: Validate[A],
     constraintB: Validate[B],
@@ -591,7 +599,7 @@ object Validator {
 
   final implicit class ValidateOps[T](val thisValidate: T => Result) {
 
-    /** Compose this check with another check and expect them both to pass. */
+    /** Conjuction. Compose this check with another check and expect them both to pass. */
     def and(otherValidate: Validate[T]): Validate[T] =
       (entity: T) =>
         thisValidate(entity)
@@ -604,7 +612,7 @@ object Validator {
             _ => otherValidate(entity)
           )
 
-    /** Compose this check with another check and expect at least one of them to pass. */
+    /** Disjunction. Compose this check with another check and expect at least one of them to pass. */
     def or(otherValidate: Validate[T]): Validate[T] =
       (entity: T) =>
         thisValidate(entity).left
@@ -613,22 +621,45 @@ object Validator {
               .map(error2 => error1 or error2)
           )
 
-    def &(otherValidate: Validate[T]): Validate[T] = thisValidate.and(otherValidate)
-    def |(otherValidate: Validate[T]): Validate[T] = thisValidate.or(otherValidate)
-    def *[U](otherValidate: Validate[U]): Validate[(T, U)] = Validator.product(thisValidate, otherValidate)
+    /** Conjuction. Compose this check with another check and expect them both to pass. */
+    def &(otherValidate: Validate[T]): Validate[T] =
+      thisValidate.and(otherValidate)
 
-    def ?(otherValidate: Validate[T]): Validate[T] = Validator.whenValid[T](thisValidate, otherValidate)
-    def ?!(otherValidate: Validate[T]): Validate[T] = Validator.whenInvalid[T](thisValidate, otherValidate)
+    /** Disjunction. Compose this check with another check and expect at least one of them to pass. */
+    def |(otherValidate: Validate[T]): Validate[T] =
+      thisValidate.or(otherValidate)
 
-    def andWhenValid(otherValidate: Validate[T]): Validate[T] = Validator.whenValid[T](thisValidate, otherValidate)
-    def andwhenInvalid(otherValidate: Validate[T]): Validate[T] = Validator.whenInvalid[T](thisValidate, otherValidate)
+    /** Product. Compose this check with another check to construct tuple of checks. */
+    def *[U](otherValidate: Validate[U]): Validate[(T, U)] =
+      Validator.product(thisValidate, otherValidate)
 
+    /** Chain two constraints so that if first is true than the second is evaluated. */
+    def ?(otherValidate: Validate[T]): Validate[T] =
+      Validator.whenValid[T](thisValidate, otherValidate)
+
+    /** Chain two constraints so that if first is false than the second is evaluated. */
+    def ?!(otherValidate: Validate[T]): Validate[T] =
+      Validator.whenInvalid[T](thisValidate, otherValidate)
+
+    /** Chain two constraints so that if first is true than the second is evaluated. */
+    def andWhenValid(otherValidate: Validate[T]): Validate[T] =
+      Validator.whenValid[T](thisValidate, otherValidate)
+
+    /** Chain two constraints so that if first is false than the second is evaluated. */
+    def andwhenInvalid(otherValidate: Validate[T]): Validate[T] =
+      Validator.whenInvalid[T](thisValidate, otherValidate)
+
+    /** Adds prefix to the error messages. */
     def @:(errorPrefix: String): Validate[T] = withErrorPrefix(errorPrefix)
+
+    /** Adds prefix to the error messages. */
     def @@(errorPrefix: String): Validate[T] = withErrorPrefix(errorPrefix)
 
+    /** Adds prefix to the error messages. */
     def withErrorPrefix(errorPrefix: String): Validate[T] =
       (entity: T) => thisValidate(entity).left.map(_.map(e => s"$errorPrefix$e"))
 
+    /** Adds computed prefix to the error messages. */
     def withErrorPrefixComputed(errorPrefix: T => String): Validate[T] =
       (entity: T) =>
         thisValidate(entity).left.map { r =>
@@ -636,6 +667,7 @@ object Validator {
           r.map(e => s"$prefix$e")
         }
 
+    /** Prints entity and the result for debug purposes. */
     def debug: Validate[T] =
       (entity: T) => {
         print(entity)
@@ -643,6 +675,7 @@ object Validator {
         thisValidate(entity).debug
       }
 
+    /** Prints entity using supplied function and the result for debug purposes. */
     def debugWith(show: T => String): Validate[T] =
       (entity: T) => {
         print(show(entity))
@@ -653,6 +686,7 @@ object Validator {
 
   final implicit class ValidationResultOps(val result: Result) {
 
+    /** Conjuction of errors. */
     def and(otherResult: Result): Result = result match {
       case Left(error1) =>
         otherResult match {
@@ -666,6 +700,7 @@ object Validator {
         }
     }
 
+    /** Disjunction of errors. */
     def or(otherResult: Result): Result = result match {
       case Left(error1) =>
         otherResult match {
@@ -675,28 +710,32 @@ object Validator {
       case Right(()) => Right(())
     }
 
-    final def isValid: Boolean = result.isRight
-    final def isInvalid: Boolean = result.isLeft
+    def isValid: Boolean = result.isRight
+    def isInvalid: Boolean = result.isLeft
 
-    final def errorsCount: Int = errors.map(_.length).getOrElse(0)
+    def errorsCount: Int = errorsOption.map(_.length).getOrElse(0)
 
-    final def errors: Option[Seq[String]] = result match {
+    /** If result is invalid then returns some sequence of all error messages. */
+    def errorsOption: Option[Seq[String]] = result match {
       case Left(error) => Some(error.messages)
       case Right(_)    => None
     }
 
-    final def errorString: Option[String] = result match {
-      case Left(error) => Some(error.mkString)
+    /** If result is invalid then returns some errors summary message. */
+    def errorsSummaryOption: Option[String] = result match {
+      case Left(error) => Some(error.summary)
       case Right(_)    => None
     }
 
-    final def headErrorString: Option[String] = result match {
+    /** If result is invalid then returns first error message. */
+    def headErrorOption: Option[String] = result match {
       case Left(error) => Some(error.headMessage)
       case Right(_)    => None
     }
 
-    final def debug: Result = {
-      println(result.fold(e => s"Left(${e.mkString})", _ => "Valid"))
+    /** Prints result for debugging purposes. */
+    def debug: Result = {
+      println(result.fold(e => s"Invalid(${e.summary})", _ => "Valid"))
       result
     }
   }

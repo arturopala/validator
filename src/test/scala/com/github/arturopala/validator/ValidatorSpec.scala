@@ -45,13 +45,13 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
     val c = c1 and c2
     assertEquals(c(0), Valid)
-    assertEquals(c(1).errorString, Some("number must be even and number must be divisible by 3"))
-    assertEquals(c(2).errorString, Some("number must be divisible by 3"))
-    assertEquals(c(3).errorString, Some("number must be even"))
-    assertEquals(c(4).errorString, Some("number must be divisible by 3"))
-    assertEquals(c(5).errorString, Some("number must be even and number must be divisible by 3"))
+    assertEquals(c(1).errorsSummaryOption, Some("number must be even and number must be divisible by 3"))
+    assertEquals(c(2).errorsSummaryOption, Some("number must be divisible by 3"))
+    assertEquals(c(3).errorsSummaryOption, Some("number must be even"))
+    assertEquals(c(4).errorsSummaryOption, Some("number must be divisible by 3"))
+    assertEquals(c(5).errorsSummaryOption, Some("number must be even and number must be divisible by 3"))
     assertEquals(c(6), Valid)
-    assertEquals(c(7).errorString, Some("number must be even and number must be divisible by 3"))
+    assertEquals(c(7).errorsSummaryOption, Some("number must be even and number must be divisible by 3"))
   }
 
   test("or combinator") {
@@ -59,13 +59,13 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
     val c = c1 or c2
     assertEquals(c(0), Valid)
-    assertEquals(c(1).errorString, Some("number must be even or number must be divisible by 3"))
+    assertEquals(c(1).errorsSummaryOption, Some("number must be even or number must be divisible by 3"))
     assertEquals(c(2), Valid)
     assertEquals(c(3), Valid)
     assertEquals(c(4), Valid)
-    assertEquals(c(5).errorString, Some("number must be even or number must be divisible by 3"))
+    assertEquals(c(5).errorsSummaryOption, Some("number must be even or number must be divisible by 3"))
     assertEquals(c(6), Valid)
-    assertEquals(c(7).errorString, Some("number must be even or number must be divisible by 3"))
+    assertEquals(c(7).errorsSummaryOption, Some("number must be even or number must be divisible by 3"))
   }
 
   test("& combinator") {
@@ -73,13 +73,13 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
     val c = c1 & c2
     assertEquals(c(0), Valid)
-    assertEquals(c(1).errorString, Some("number must be even and number must be divisible by 3"))
-    assertEquals(c(2).errorString, Some("number must be divisible by 3"))
-    assertEquals(c(3).errorString, Some("number must be even"))
-    assertEquals(c(4).errorString, Some("number must be divisible by 3"))
-    assertEquals(c(5).errorString, Some("number must be even and number must be divisible by 3"))
+    assertEquals(c(1).errorsSummaryOption, Some("number must be even and number must be divisible by 3"))
+    assertEquals(c(2).errorsSummaryOption, Some("number must be divisible by 3"))
+    assertEquals(c(3).errorsSummaryOption, Some("number must be even"))
+    assertEquals(c(4).errorsSummaryOption, Some("number must be divisible by 3"))
+    assertEquals(c(5).errorsSummaryOption, Some("number must be even and number must be divisible by 3"))
     assertEquals(c(6), Valid)
-    assertEquals(c(7).errorString, Some("number must be even and number must be divisible by 3"))
+    assertEquals(c(7).errorsSummaryOption, Some("number must be even and number must be divisible by 3"))
   }
 
   test("| combinator") {
@@ -87,13 +87,13 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
     val c = c1 | c2
     assertEquals(c(0), Valid)
-    assertEquals(c(1).errorString, Some("number must be even or number must be divisible by 3"))
+    assertEquals(c(1).errorsSummaryOption, Some("number must be even or number must be divisible by 3"))
     assertEquals(c(2), Valid)
     assertEquals(c(3), Valid)
     assertEquals(c(4), Valid)
-    assertEquals(c(5).errorString, Some("number must be even or number must be divisible by 3"))
+    assertEquals(c(5).errorsSummaryOption, Some("number must be even or number must be divisible by 3"))
     assertEquals(c(6), Valid)
-    assertEquals(c(7).errorString, Some("number must be even or number must be divisible by 3"))
+    assertEquals(c(7).errorsSummaryOption, Some("number must be even or number must be divisible by 3"))
   }
 
   test("| with & combinator") {
@@ -102,19 +102,19 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val c3 = check[Int](a => a < 10, "number must be less than 10")
     val c = (c1 | c2) & c3
     assertEquals(c(0), Valid)
-    assertEquals(c(1).errorString, Some("number must be even or number must be divisible by 3"))
+    assertEquals(c(1).errorsSummaryOption, Some("number must be even or number must be divisible by 3"))
     assertEquals(c(2), Valid)
     assertEquals(c(3), Valid)
     assertEquals(c(4), Valid)
-    assertEquals(c(5).errorString, Some("number must be even or number must be divisible by 3"))
+    assertEquals(c(5).errorsSummaryOption, Some("number must be even or number must be divisible by 3"))
     assertEquals(c(6), Valid)
-    assertEquals(c(7).errorString, Some("number must be even or number must be divisible by 3"))
-    assertEquals(c(10).errorString, Some("number must be less than 10"))
+    assertEquals(c(7).errorsSummaryOption, Some("number must be even or number must be divisible by 3"))
+    assertEquals(c(10).errorsSummaryOption, Some("number must be less than 10"))
     assertEquals(
-      c(11).errorString,
+      c(11).errorsSummaryOption,
       Some("(number must be even or number must be divisible by 3) and number must be less than 10")
     )
-    assertEquals(c(12).errorString, Some("number must be less than 10"))
+    assertEquals(c(12).errorsSummaryOption, Some("number must be less than 10"))
   }
 
   test("| with | combinator") {
@@ -124,19 +124,19 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val c = c1 | c2 | c3
     assertEquals(c(0), Valid)
     assertEquals(
-      c(1).errorString,
+      c(1).errorsSummaryOption,
       Some("number must be even or number must be divisible by 3 or number must be greater than 10")
     )
     assertEquals(c(2), Valid)
     assertEquals(c(3), Valid)
     assertEquals(c(4), Valid)
     assertEquals(
-      c(5).errorString,
+      c(5).errorsSummaryOption,
       Some("number must be even or number must be divisible by 3 or number must be greater than 10")
     )
     assertEquals(c(6), Valid)
     assertEquals(
-      c(7).errorString,
+      c(7).errorsSummaryOption,
       Some("number must be even or number must be divisible by 3 or number must be greater than 10")
     )
     assertEquals(c(8), Valid)
@@ -153,19 +153,19 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val c = (c1 & c2) | c3
     assertEquals(c(0), Valid)
     assertEquals(
-      c(1).errorString,
+      c(1).errorsSummaryOption,
       Some("(number must be even and number must be divisible by 3) or number must be greater than 10")
     )
-    assertEquals(c(2).errorString, Some("number must be divisible by 3 or number must be greater than 10"))
-    assertEquals(c(3).errorString, Some("number must be even or number must be greater than 10"))
-    assertEquals(c(4).errorString, Some("number must be divisible by 3 or number must be greater than 10"))
+    assertEquals(c(2).errorsSummaryOption, Some("number must be divisible by 3 or number must be greater than 10"))
+    assertEquals(c(3).errorsSummaryOption, Some("number must be even or number must be greater than 10"))
+    assertEquals(c(4).errorsSummaryOption, Some("number must be divisible by 3 or number must be greater than 10"))
     assertEquals(
-      c(5).errorString,
+      c(5).errorsSummaryOption,
       Some("(number must be even and number must be divisible by 3) or number must be greater than 10")
     )
     assertEquals(c(6), Valid)
     assertEquals(
-      c(7).errorString,
+      c(7).errorsSummaryOption,
       Some("(number must be even and number must be divisible by 3) or number must be greater than 10")
     )
     assertEquals(c(11), Valid)
@@ -179,31 +179,31 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     val c = c1 & c2 & c3
     assertEquals(c(0), Valid)
     assertEquals(
-      c(1).errorString,
+      c(1).errorsSummaryOption,
       Some("number must be even and number must be divisible by 3")
     )
-    assertEquals(c(2).errorString, Some("number must be divisible by 3"))
-    assertEquals(c(3).errorString, Some("number must be even"))
-    assertEquals(c(4).errorString, Some("number must be divisible by 3"))
+    assertEquals(c(2).errorsSummaryOption, Some("number must be divisible by 3"))
+    assertEquals(c(3).errorsSummaryOption, Some("number must be even"))
+    assertEquals(c(4).errorsSummaryOption, Some("number must be divisible by 3"))
     assertEquals(
-      c(5).errorString,
+      c(5).errorsSummaryOption,
       Some("number must be even and number must be divisible by 3")
     )
     assertEquals(c(6), Valid)
     assertEquals(
-      c(7).errorString,
+      c(7).errorsSummaryOption,
       Some("number must be even and number must be divisible by 3")
     )
     assertEquals(
-      c(10).errorString,
+      c(10).errorsSummaryOption,
       Some("number must be divisible by 3 and number must be lower than 10")
     )
     assertEquals(
-      c(11).errorString,
+      c(11).errorsSummaryOption,
       Some("number must be even and number must be divisible by 3 and number must be lower than 10")
     )
     assertEquals(
-      c(12).errorString,
+      c(12).errorsSummaryOption,
       Some("number must be lower than 10")
     )
   }
@@ -265,14 +265,20 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     forAll { (string: String) =>
       Prop.all(
         emptyStringValidator("").isValid,
-        ("foo: " @: nonEmptyStringValidator)("").errorString == Some("foo: string must be non-empty"),
-        (emptyStringValidator.withErrorPrefix("@ "))(s"a$string").errorString == Some("@ string must be empty"),
+        ("foo: " @: nonEmptyStringValidator)("").errorsSummaryOption == Some("foo: string must be non-empty"),
+        (emptyStringValidator.withErrorPrefix("@ "))(s"a$string").errorsSummaryOption == Some("@ string must be empty"),
         nonEmptyStringValidator(s"a$string").isValid,
-        Validator.allWithPrefix("foo_", nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
+        Validator
+          .allWithPrefix("foo_", nonEmptyStringValidator, emptyStringValidator)
+          .apply(string)
+          .errorsSummaryOption ==
           Some(if (string.isEmpty) "foo_string must be non-empty" else "foo_string must be empty"),
-        Validator.allWithPrefix("bar/", nonEmptyStringValidator, emptyStringValidator).apply(string).errorString ==
+        Validator
+          .allWithPrefix("bar/", nonEmptyStringValidator, emptyStringValidator)
+          .apply(string)
+          .errorsSummaryOption ==
           Some(if (string.isEmpty) "bar/string must be non-empty" else "bar/string must be empty"),
-        validate(string).errorString ==
+        validate(string).errorsSummaryOption ==
           Some(if (string.isEmpty) "foo: string must be non-empty" else "foo: string must be empty")
       )
     }
@@ -287,20 +293,20 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     forAll { (string: String) =>
       Prop.all(
         emptyStringValidator("").isValid,
-        ("foo: " @: nonEmptyStringValidator)("").errorString == Some("foo: string must be non-empty"),
-        (emptyStringValidator.withErrorPrefix("@ "))(s"a$string").errorString == Some("@ string must be empty"),
+        ("foo: " @: nonEmptyStringValidator)("").errorsSummaryOption == Some("foo: string must be non-empty"),
+        (emptyStringValidator.withErrorPrefix("@ "))(s"a$string").errorsSummaryOption == Some("@ string must be empty"),
         nonEmptyStringValidator(s"a$string").isValid,
         Validator
           .allWithPrefix[String]("foo_", nonEmptyStringValidator, emptyStringValidator)
           .apply(string)
-          .errorString ==
+          .errorsSummaryOption ==
           Some(if (string.isEmpty) "foo_string must be non-empty" else "foo_string must be empty"),
         Validator
           .allWithPrefix[String]("bar/", nonEmptyStringValidator, emptyStringValidator)
           .apply(string)
-          .errorString ==
+          .errorsSummaryOption ==
           Some(if (string.isEmpty) "bar/string must be non-empty" else "bar/string must be empty"),
-        validate(string).errorString ==
+        validate(string).errorsSummaryOption ==
           Some(if (string.isEmpty) "foo: string must be non-empty" else "foo: string must be empty")
       )
     }
@@ -318,17 +324,17 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         Validator
           .allWithComputedPrefix(calculatePrefix, nonEmptyStringValidator, emptyStringValidator)
           .apply(string)
-          .errorString ==
+          .errorsSummaryOption ==
           Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty"),
         Validator
           .allWithComputedPrefix(calculatePrefix, nonEmptyStringValidator, emptyStringValidator)
           .apply(string)
-          .errorString ==
+          .errorsSummaryOption ==
           Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty"),
         Validator
           .allWithComputedPrefix(calculatePrefix, nonEmptyStringValidator, emptyStringValidator)
           .apply(string)
-          .errorString ==
+          .errorsSummaryOption ==
           Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty")
       )
     }
@@ -346,17 +352,17 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         Validator
           .allWithComputedPrefix[String](calculatePrefix, nonEmptyStringValidator, emptyStringValidator)
           .apply(string)
-          .errorString ==
+          .errorsSummaryOption ==
           Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty"),
         Validator
           .allWithComputedPrefix[String](calculatePrefix, nonEmptyStringValidator, emptyStringValidator)
           .apply(string)
-          .errorString ==
+          .errorsSummaryOption ==
           Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty"),
         Validator
           .allWithComputedPrefix[String](calculatePrefix, nonEmptyStringValidator, emptyStringValidator)
           .apply(string)
-          .errorString ==
+          .errorsSummaryOption ==
           Some(if (string.isEmpty) s"$f: string must be non-empty" else s"$f: string must be empty")
       )
     }
@@ -373,8 +379,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         Prop.all(
           hasDigitValidator(s"$a/$d").isValid,
           hasLowerCaseValidator(s"$a!$d").isValid,
-          hasDigitValidator(s"${a.toUpper}").errorString == Some("some characters must be digits"),
-          hasLowerCaseValidator(s"${a.toUpper}").errorString == Some("some characters must be lower case"),
+          hasDigitValidator(s"${a.toUpper}").errorsSummaryOption == Some("some characters must be digits"),
+          hasLowerCaseValidator(s"${a.toUpper}").errorsSummaryOption == Some("some characters must be lower case"),
           validate(s"$a-$d").isValid,
           validate(s"$a-$a").isValid,
           validate(s"$d-$d").isValid,
@@ -383,13 +389,13 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
           Validator.any(hasDigitValidator, hasLowerCaseValidator).apply(s"$a-$a").isValid,
           Validator.any(hasDigitValidator, hasLowerCaseValidator).apply(s"$d-$d").isValid,
           Validator.any(hasDigitValidator, hasLowerCaseValidator).apply(s"$d-$a").isValid,
-          validate(s"${a.toUpper}" * d.toInt).errorString == Some(
+          validate(s"${a.toUpper}" * d.toInt).errorsSummaryOption == Some(
             "some characters must be digits or some characters must be lower case"
           ),
           Validator
             .any(hasDigitValidator, hasLowerCaseValidator)
             .apply(s"${a.toUpper}" * d.toInt)
-            .errorString == Some(
+            .errorsSummaryOption == Some(
             "some characters must be digits or some characters must be lower case"
           )
         )
@@ -411,7 +417,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
           Validator
             .anyWithPrefix("foo_", hasDigitValidator, hasLowerCaseValidator)
             .apply(s"${a.toUpper}" * d.toInt)
-            .errorString == Some(
+            .errorsSummaryOption == Some(
             "foo_some characters must be digits or foo_some characters must be lower case"
           )
         )
@@ -433,7 +439,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
           Validator
             .anyWithComputedPrefix(calculatePrefix, hasDigitValidator, hasLowerCaseValidator)
             .apply(s"${a.toUpper}" * d.toInt)
-            .errorString == Some(
+            .errorsSummaryOption == Some(
             s"${a.toUpper}_some characters must be digits or ${a.toUpper}_some characters must be lower case"
           )
         )
@@ -457,14 +463,14 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     assert(validate("ABC").isValid)
     assert(validate("000").isValid)
     assert(validate("012").isValid)
-    assert(validate("").errorString == Some("must be non empty string"))
-    assert(validate("Az").errorString == Some("all characters must be upper case"))
-    assert(validate("az").errorString == Some("all characters must be upper case"))
-    assert(validate("a").errorString == Some("all characters must be upper case"))
-    assert(validate("0").errorString == Some("must have 3 characters"))
-    assert(validate("00").errorString == Some("must have 3 characters"))
-    assert(validate("123").errorString == Some("all characters must be upper case"))
-    assert(validate("0000").errorString == Some("must have 3 characters"))
+    assert(validate("").errorsSummaryOption == Some("must be non empty string"))
+    assert(validate("Az").errorsSummaryOption == Some("all characters must be upper case"))
+    assert(validate("az").errorsSummaryOption == Some("all characters must be upper case"))
+    assert(validate("a").errorsSummaryOption == Some("all characters must be upper case"))
+    assert(validate("0").errorsSummaryOption == Some("must have 3 characters"))
+    assert(validate("00").errorsSummaryOption == Some("must have 3 characters"))
+    assert(validate("123").errorsSummaryOption == Some("all characters must be upper case"))
+    assert(validate("0000").errorsSummaryOption == Some("must have 3 characters"))
   }
 
   test("Validator.whenTrue runs the test and if true then follows with the next check") {
@@ -483,9 +489,9 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     assert(validate("az").isValid)
     assert(validate("a").isValid)
     assert(validate("123").isValid)
-    assert(validate("0").errorString == Some("must have 3 characters"))
-    assert(validate("00").errorString == Some("must have 3 characters"))
-    assert(validate("0000").errorString == Some("must have 3 characters"))
+    assert(validate("0").errorsSummaryOption == Some("must have 3 characters"))
+    assert(validate("00").errorsSummaryOption == Some("must have 3 characters"))
+    assert(validate("0000").errorsSummaryOption == Some("must have 3 characters"))
   }
 
   test("Validator.whenFalse runs the test and if false then tries the next check") {
@@ -504,14 +510,14 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     assert(validate("0abc").isValid)
     assert(validate("012").isValid)
     assert(validate("0123").isValid)
-    assert(validate("").errorString == Some("must be non empty string"))
-    assert(validate("Az").errorString == Some("all characters must be upper case"))
-    assert(validate("az").errorString == Some("all characters must be upper case"))
-    assert(validate("a").errorString == Some("all characters must be upper case"))
-    assert(validate("1").errorString == Some("all characters must be upper case"))
-    assert(validate("12").errorString == Some("all characters must be upper case"))
-    assert(validate("123").errorString == Some("all characters must be upper case"))
-    assert(validate("1ABC").errorString == Some("all characters must be upper case"))
+    assert(validate("").errorsSummaryOption == Some("must be non empty string"))
+    assert(validate("Az").errorsSummaryOption == Some("all characters must be upper case"))
+    assert(validate("az").errorsSummaryOption == Some("all characters must be upper case"))
+    assert(validate("a").errorsSummaryOption == Some("all characters must be upper case"))
+    assert(validate("1").errorsSummaryOption == Some("all characters must be upper case"))
+    assert(validate("12").errorsSummaryOption == Some("all characters must be upper case"))
+    assert(validate("123").errorsSummaryOption == Some("all characters must be upper case"))
+    assert(validate("1ABC").errorsSummaryOption == Some("all characters must be upper case"))
   }
 
   test("Validator.when runs the guard check and follows with either first or second check") {
@@ -533,14 +539,14 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     assert(validate("ABC").isValid)
     assert(validate("000").isValid)
     assert(validate("012").isValid)
-    assert(validate("").errorString == Some("must be non empty string"))
-    assert(validate("Az").errorString == Some("all characters must be upper case"))
-    assert(validate("az").errorString == Some("all characters must be upper case"))
-    assert(validate("a").errorString == Some("all characters must be upper case"))
-    assert(validate("0").errorString == Some("must have 3 characters"))
-    assert(validate("00").errorString == Some("must have 3 characters"))
-    assert(validate("123").errorString == Some("all characters must be upper case"))
-    assert(validate("0000").errorString == Some("must have 3 characters"))
+    assert(validate("").errorsSummaryOption == Some("must be non empty string"))
+    assert(validate("Az").errorsSummaryOption == Some("all characters must be upper case"))
+    assert(validate("az").errorsSummaryOption == Some("all characters must be upper case"))
+    assert(validate("a").errorsSummaryOption == Some("all characters must be upper case"))
+    assert(validate("0").errorsSummaryOption == Some("must have 3 characters"))
+    assert(validate("00").errorsSummaryOption == Some("must have 3 characters"))
+    assert(validate("123").errorsSummaryOption == Some("all characters must be upper case"))
+    assert(validate("0000").errorsSummaryOption == Some("must have 3 characters"))
   }
 
   test("Validator.whenValid runs the guard check and if valid then follows with the next check") {
@@ -558,17 +564,17 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     def runtWith(validate: Validate[String]) = {
       assert(validate("000").isValid)
       assert(validate("012").isValid)
-      assert(validate("A").errorString == Some("first character must be a Zero"))
-      assert(validate("AZ").errorString == Some("first character must be a Zero"))
-      assert(validate("ABC").errorString == Some("first character must be a Zero"))
-      assert(validate("").errorString == Some("first character must be a Zero"))
-      assert(validate("Az").errorString == Some("first character must be a Zero"))
-      assert(validate("az").errorString == Some("first character must be a Zero"))
-      assert(validate("a").errorString == Some("first character must be a Zero"))
-      assert(validate("123").errorString == Some("first character must be a Zero"))
-      assert(validate("0").errorString == Some("must have 3 characters"))
-      assert(validate("00").errorString == Some("must have 3 characters"))
-      assert(validate("0000").errorString == Some("must have 3 characters"))
+      assert(validate("A").errorsSummaryOption == Some("first character must be a Zero"))
+      assert(validate("AZ").errorsSummaryOption == Some("first character must be a Zero"))
+      assert(validate("ABC").errorsSummaryOption == Some("first character must be a Zero"))
+      assert(validate("").errorsSummaryOption == Some("first character must be a Zero"))
+      assert(validate("Az").errorsSummaryOption == Some("first character must be a Zero"))
+      assert(validate("az").errorsSummaryOption == Some("first character must be a Zero"))
+      assert(validate("a").errorsSummaryOption == Some("first character must be a Zero"))
+      assert(validate("123").errorsSummaryOption == Some("first character must be a Zero"))
+      assert(validate("0").errorsSummaryOption == Some("must have 3 characters"))
+      assert(validate("00").errorsSummaryOption == Some("must have 3 characters"))
+      assert(validate("0000").errorsSummaryOption == Some("must have 3 characters"))
     }
 
     runtWith(validate1)
@@ -598,13 +604,13 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       assert(validate("0000").isValid)
       assert(validate("012").isValid)
       assert(validate("0123").isValid)
-      assert(validate("").errorString == Some("must be non empty string"))
-      assert(validate("Az").errorString == Some("all characters must be upper case"))
-      assert(validate("az").errorString == Some("all characters must be upper case"))
-      assert(validate("a").errorString == Some("all characters must be upper case"))
-      assert(validate("1").errorString == Some("all characters must be upper case"))
-      assert(validate("12").errorString == Some("all characters must be upper case"))
-      assert(validate("123").errorString == Some("all characters must be upper case"))
+      assert(validate("").errorsSummaryOption == Some("must be non empty string"))
+      assert(validate("Az").errorsSummaryOption == Some("all characters must be upper case"))
+      assert(validate("az").errorsSummaryOption == Some("all characters must be upper case"))
+      assert(validate("a").errorsSummaryOption == Some("all characters must be upper case"))
+      assert(validate("1").errorsSummaryOption == Some("all characters must be upper case"))
+      assert(validate("12").errorsSummaryOption == Some("all characters must be upper case"))
+      assert(validate("123").errorsSummaryOption == Some("all characters must be upper case"))
     }
 
     runtWith(validate1)
@@ -623,10 +629,12 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         Prop.all(
           hasDigitValidator(d).isValid,
           hasLowerCaseValidator(a).isValid,
-          hasDigitValidator(a).errorString == Some("character must be a digit"),
-          hasLowerCaseValidator(a.toUpper).errorString == Some("character must be lower case"),
+          hasDigitValidator(a).errorsSummaryOption == Some("character must be a digit"),
+          hasLowerCaseValidator(a.toUpper).errorsSummaryOption == Some("character must be lower case"),
           validate.apply((d, a)).isValid,
-          validate.apply((a, d)).errorString == Some("character must be a digit and character must be lower case")
+          validate.apply((a, d)).errorsSummaryOption == Some(
+            "character must be a digit and character must be lower case"
+          )
         )
     }
   }
@@ -638,11 +646,11 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     Prop.all(
       forAll { (string: String) =>
         validate(Foo(s"a$string")).isValid
-        validate(Foo(s"a$string")).errorString.isEmpty
+        validate(Foo(s"a$string")).errorsSummaryOption.isEmpty
       },
       forAll { (string: String, char: Char) =>
         (char != 'a') ==>
-          (validate(Foo(s"$char$string")).errorString == Some("foo.bar must start with A"))
+          (validate(Foo(s"$char$string")).errorsSummaryOption == Some("foo.bar must start with A"))
       }
     )
   }
@@ -677,7 +685,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       forAll { (int: Int) =>
         validate(Some(int)).isValid
       },
-      validate(None).errorString == Some("option must be defined")
+      validate(None).errorsSummaryOption == Some("option must be defined")
     )
   }
 
@@ -701,7 +709,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       if (int > 0)
         validate(int).isValid
       else
-        validate(int).errorString == Some("must be positive")
+        validate(int).errorsSummaryOption == Some("must be positive")
     }
   }
 
@@ -715,7 +723,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       if (int > 0)
         validate(int).isValid
       else
-        validate(int).errorString == Some("integer must be positive")
+        validate(int).errorsSummaryOption == Some("integer must be positive")
     }
   }
 
@@ -728,7 +736,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       if (string.nonEmpty)
         validate(Foo(string)).isValid
       else
-        validate(Foo(string)).errorString == Some("string must be non-empty")
+        validate(Foo(string)).errorsSummaryOption == Some("string must be non-empty")
     }
   }
 
@@ -743,7 +751,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       if (string.nonEmpty)
         validate(Foo(string)).isValid
       else
-        validate(Foo(string)).errorString == Some("Foo.bar string must be non-empty")
+        validate(Foo(string)).errorsSummaryOption == Some("Foo.bar string must be non-empty")
     }
   }
 
@@ -758,7 +766,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         if (int > 0)
           validate(Foo("", Some(int))).isValid
         else
-          validate(Foo("", Some(int))).errorString == Some("must be positive integer")
+          validate(Foo("", Some(int))).errorsSummaryOption == Some("must be positive integer")
       )
     }
   }
@@ -774,7 +782,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         if (int > 0)
           validate(Foo("", Some(int))).isValid
         else
-          validate(Foo("", Some(int))).errorString == Some("must be positive integer")
+          validate(Foo("", Some(int))).errorsSummaryOption == Some("must be positive integer")
       )
     }
   }
@@ -792,7 +800,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         if (int > 0)
           validate(Foo("", Some(int))).isValid
         else
-          validate(Foo("", Some(int))).errorString == Some("Foo.bazOpt must be positive integer")
+          validate(Foo("", Some(int))).errorsSummaryOption == Some("Foo.bazOpt must be positive integer")
       )
     }
   }
@@ -812,7 +820,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         if (int > 0)
           validate(Foo("", Some(int))).isValid
         else
-          validate(Foo("", Some(int))).errorString == Some("Foo.bazOpt must be positive integer")
+          validate(Foo("", Some(int))).errorsSummaryOption == Some("Foo.bazOpt must be positive integer")
       )
     }
   }
@@ -831,7 +839,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         validate(Ints(ints)).isValid
       },
       forAll(Gen.nonEmptyContainerOf[Seq, Int](Gen.chooseNum(0, Integer.MAX_VALUE))) { (ints: Seq[Int]) =>
-        validate(Ints(ints)).errorString == Some("must be negative integer")
+        validate(Ints(ints)).errorsSummaryOption == Some("must be negative integer")
       }
     )
   }
@@ -879,7 +887,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         Prop.all(
           result.isInvalid,
           result.errorsCount == 1,
-          result.errorString == Some("each element of 'is' must be negative integer")
+          result.errorsSummaryOption == Some("each element of 'is' must be negative integer")
         )
       }
     )
@@ -899,7 +907,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         validate(Ints(ints)).isValid
       },
       forAll(Gen.nonEmptyContainerOf[Seq, Int](Gen.chooseNum(0, Integer.MAX_VALUE))) { (ints: Seq[Int]) =>
-        validate(Ints(ints)).errorString == Some("must be negative integer")
+        validate(Ints(ints)).errorsSummaryOption == Some("must be negative integer")
       }
     )
   }
@@ -951,7 +959,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
         Prop.all(
           result.isInvalid,
           result.errorsCount == 1,
-          result.errorString == Some("each element of 'is' must be negative integer")
+          result.errorsSummaryOption == Some("each element of 'is' must be negative integer")
         )
       }
     )
@@ -969,7 +977,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       validate(Ints(None)).isValid,
       validate(Ints(Some(Seq.empty))).isValid,
       forAll(Gen.nonEmptyContainerOf[Seq, Int](Gen.chooseNum(Integer.MIN_VALUE, 0))) { (ints: Seq[Int]) =>
-        validate(Ints(Some(ints))).errorString == Some("must be positive integer")
+        validate(Ints(Some(ints))).errorsSummaryOption == Some("must be positive integer")
       },
       forAll(Gen.nonEmptyContainerOf[Seq, Int](Gen.chooseNum(1, Integer.MAX_VALUE))) { (ints: Seq[Int]) =>
         validate(Ints(Some(ints))).isValid
@@ -989,7 +997,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       validate(Ints(None)).isInvalid,
       validate(Ints(Some(Seq.empty))).isValid,
       forAll(Gen.nonEmptyContainerOf[Seq, Int](Gen.chooseNum(Integer.MIN_VALUE, 0))) { (ints: Seq[Int]) =>
-        validate(Ints(Some(ints))).errorString == Some("must be positive integer")
+        validate(Ints(Some(ints))).errorsSummaryOption == Some("must be positive integer")
       },
       forAll(Gen.nonEmptyContainerOf[Seq, Int](Gen.chooseNum(1, Integer.MAX_VALUE))) { (ints: Seq[Int]) =>
         validate(Ints(Some(ints))).isValid
@@ -1476,6 +1484,57 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       validate(Bar(Some(""), Some(0), Some(false), Some(Seq(1, 2)))).isValid,
       validate(Bar(Some(""), Some(1), Some(true), Some(Seq(1, 2)))).isValid
     )
+
+    test("example") {
+
+      case class Address(street: String, town: String, postcode: String, country: String)
+      case class PhoneNumber(prefix: String, number: String, description: String)
+      case class Contact(name: String, address: Address, phoneNumbers: Seq[PhoneNumber])
+
+      object Country {
+        val codes = Set("en", "de", "fr")
+        val telephonePrefixes = Set("+44", "+41", "+42")
+      }
+
+      val postcodeCheck = check[String](_.matches("""\d{5}"""), "address.postcode.invalid")
+      val countryCheck = check[String](_.isOneOf(Country.codes), "address.country.invalid")
+      val phoneNumberPrefixCheck = check[String](_.isOneOf(Country.telephonePrefixes), "address.phone.prefix.invalid")
+      val phoneNumberValueCheck = check[String](_.matches("""\d{7}"""), "address.phone.prefix.invalid")
+
+      val addressCheck = all[Address](
+        check(_.street.nonEmpty, "address.street.empty"),
+        check(_.town.nonEmpty, "address.town.empty"),
+        checkProperty(_.postcode, postcodeCheck),
+        checkProperty(_.country, countryCheck)
+      )
+
+      val phoneNumberCheck = all[PhoneNumber](
+        checkProperty(_.prefix, phoneNumberPrefixCheck),
+        checkProperty(_.number, phoneNumberValueCheck)
+      )
+
+      val contactCheck = all[Contact](
+        check(_.name.nonEmpty, "contact.name.empty"),
+        checkProperty(_.address, addressCheck),
+        checkEach(_.phoneNumbers, phoneNumberCheck)
+      )
+
+      val c1 = Contact(
+        name = "Foo Bar",
+        address = Address(street = "Sesame Street 1", town = "Cookieburgh", country = "en", postcode = "00001"),
+        phoneNumbers = Seq(PhoneNumber("+44", "1234567", "ceo"), PhoneNumber("+41", "7654321", "sales"))
+      )
+
+      assert(contactCheck(c1).isValid)
+
+      val c2 = Contact(
+        name = "",
+        address = Address(street = "", town = "", country = "ca", postcode = "foobar"),
+        phoneNumbers = Seq(PhoneNumber("+1", "11111111111", "ceo"), PhoneNumber("+01", "00000000", "sales"))
+      )
+
+      assert(contactCheck(c2).isInvalid)
+    }
   }
 
 }

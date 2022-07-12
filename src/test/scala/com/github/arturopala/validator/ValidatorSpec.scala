@@ -1485,56 +1485,57 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       validate(Bar(Some(""), Some(1), Some(true), Some(Seq(1, 2)))).isValid
     )
 
-    test("example") {
+  }
 
-      case class Address(street: String, town: String, postcode: String, country: String)
-      case class PhoneNumber(prefix: String, number: String, description: String)
-      case class Contact(name: String, address: Address, phoneNumbers: Seq[PhoneNumber])
+  test("example") {
 
-      object Country {
-        val codes = Set("en", "de", "fr")
-        val telephonePrefixes = Set("+44", "+41", "+42")
-      }
+    case class Address(street: String, town: String, postcode: String, country: String)
+    case class PhoneNumber(prefix: String, number: String, description: String)
+    case class Contact(name: String, address: Address, phoneNumbers: Seq[PhoneNumber])
 
-      val postcodeCheck = check[String](_.matches("""\d{5}"""), "address.postcode.invalid")
-      val countryCheck = check[String](_.isOneOf(Country.codes), "address.country.invalid")
-      val phoneNumberPrefixCheck = check[String](_.isOneOf(Country.telephonePrefixes), "address.phone.prefix.invalid")
-      val phoneNumberValueCheck = check[String](_.matches("""\d{7}"""), "address.phone.prefix.invalid")
-
-      val addressCheck = all[Address](
-        check(_.street.nonEmpty, "address.street.empty"),
-        check(_.town.nonEmpty, "address.town.empty"),
-        checkProperty(_.postcode, postcodeCheck),
-        checkProperty(_.country, countryCheck)
-      )
-
-      val phoneNumberCheck = all[PhoneNumber](
-        checkProperty(_.prefix, phoneNumberPrefixCheck),
-        checkProperty(_.number, phoneNumberValueCheck)
-      )
-
-      val contactCheck = all[Contact](
-        check(_.name.nonEmpty, "contact.name.empty"),
-        checkProperty(_.address, addressCheck),
-        checkEach(_.phoneNumbers, phoneNumberCheck)
-      )
-
-      val c1 = Contact(
-        name = "Foo Bar",
-        address = Address(street = "Sesame Street 1", town = "Cookieburgh", country = "en", postcode = "00001"),
-        phoneNumbers = Seq(PhoneNumber("+44", "1234567", "ceo"), PhoneNumber("+41", "7654321", "sales"))
-      )
-
-      assert(contactCheck(c1).isValid)
-
-      val c2 = Contact(
-        name = "",
-        address = Address(street = "", town = "", country = "ca", postcode = "foobar"),
-        phoneNumbers = Seq(PhoneNumber("+1", "11111111111", "ceo"), PhoneNumber("+01", "00000000", "sales"))
-      )
-
-      assert(contactCheck(c2).isInvalid)
+    object Country {
+      val codes = Set("en", "de", "fr")
+      val telephonePrefixes = Set("+44", "+41", "+42")
     }
+
+    val postcodeCheck = check[String](_.matches("""\d{5}"""), "address.postcode.invalid")
+    val countryCheck = check[String](_.isOneOf(Country.codes), "address.country.invalid")
+    val phoneNumberPrefixCheck = check[String](_.isOneOf(Country.telephonePrefixes), "address.phone.prefix.invalid")
+    val phoneNumberValueCheck = check[String](_.matches("""\d{7}"""), "address.phone.prefix.invalid")
+
+    val addressCheck = all[Address](
+      check(_.street.nonEmpty, "address.street.empty"),
+      check(_.town.nonEmpty, "address.town.empty"),
+      checkProperty(_.postcode, postcodeCheck),
+      checkProperty(_.country, countryCheck)
+    )
+
+    val phoneNumberCheck = all[PhoneNumber](
+      checkProperty(_.prefix, phoneNumberPrefixCheck),
+      checkProperty(_.number, phoneNumberValueCheck)
+    )
+
+    val contactCheck = all[Contact](
+      check(_.name.nonEmpty, "contact.name.empty"),
+      checkProperty(_.address, addressCheck),
+      checkEach(_.phoneNumbers, phoneNumberCheck)
+    )
+
+    val c1 = Contact(
+      name = "Foo Bar",
+      address = Address(street = "Sesame Street 1", town = "Cookieburgh", country = "en", postcode = "00001"),
+      phoneNumbers = Seq(PhoneNumber("+44", "1234567", "ceo"), PhoneNumber("+41", "7654321", "sales"))
+    )
+
+    assert(contactCheck(c1).isValid, "expected checks to pass")
+
+    val c2 = Contact(
+      name = "",
+      address = Address(street = "", town = "", country = "ca", postcode = "foobar"),
+      phoneNumbers = Seq(PhoneNumber("+1", "11111111111", "ceo"), PhoneNumber("+01", "00000000", "sales"))
+    )
+
+    assert(contactCheck(c2).isInvalid, "expected checks to fail")
   }
 
 }

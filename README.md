@@ -32,96 +32,81 @@ Here the validator is represented by the function type alias:
 The rest of the API is focused on creating and combining instances of `Validate[T]`.
 
 
-All batteries included
+Simple example
 ---
 
 ```scala
 import com.github.arturopala.validator.Validator._
 
-val c1 = check[Int](a => a % 2 == 0, "number must be even")
-// c1: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12533/1718009837@39273024
-val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
-// c2: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12533/1718009837@5eb3c725
+    case class Address(street: String, town: String, postcode: String, country: String)
+    case class PhoneNumber(prefix: String, number: String, description: String)
+    case class Contact(name: String, address: Address, phoneNumbers: Seq[PhoneNumber])
 
-val c3 = c1 and c2
-// c3: Validate[Int] = com.github.arturopala.validator.Validator$ValidateOps$$Lambda$12534/2013557225@559e9bfb
-val c4 = c1 or c2
-// c4: Validate[Int] = com.github.arturopala.validator.Validator$ValidateOps$$Lambda$12535/831101329@4367027a
+    object Country {
+    val codes = Set("en", "de", "fr")
+    val telephonePrefixes = Set("+44", "+41", "+42")
+    }
 
-val c5 = check[Int](a => a < 10, "number must be lower then 10")
-// c5: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12533/1718009837@454a41e4
+    val postcodeCheck = check[String](_.matches("""\d{5}"""), "address.postcode.invalid")
+// postcodeCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12524/1809130928@7c1d9cf8
+    val countryCheck = check[String](_.isOneOf(Country.codes), "address.country.invalid")
+// countryCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12524/1809130928@153fc24e
+    val phoneNumberPrefixCheck = check[String](_.isOneOf(Country.telephonePrefixes), "address.phone.prefix.invalid")
+// phoneNumberPrefixCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12524/1809130928@254da998
+    val phoneNumberValueCheck = check[String](_.matches("""\d{7}"""), "address.phone.prefix.invalid")
+// phoneNumberValueCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12524/1809130928@3a7f0e7a
 
-val c6 = c1 and (c2 or c5)
-// c6: Validate[Int] = com.github.arturopala.validator.Validator$ValidateOps$$Lambda$12534/2013557225@5003c87
-val c7 = (c1 and c5) or c2
-// c7: Validate[Int] = com.github.arturopala.validator.Validator$ValidateOps$$Lambda$12535/831101329@24e03e9f
+    val addressCheck = all[Address](
+        check(_.street.nonEmpty, "address.street.empty"),
+        check(_.town.nonEmpty, "address.town.empty"),
+        checkProperty(_.postcode, postcodeCheck),
+        checkProperty(_.country, countryCheck)
+    )
+// addressCheck: Address => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12526/1473912927@57217421
 
-c1(2)
-// res0: Result = Right(value = ())
-c1(3)
-// res1: Result = Left(value = Single(message = "number must be even"))
-c2(2)
-// res2: Result = Left(
-//   value = Single(message = "number must be divisible by 3")
-// )
-c2(3)
-// res3: Result = Right(value = ())
-c3(5)
-// res4: Result = Left(
-//   value = And(
-//     errors = List(
-//       Single(message = "number must be even"),
-//       Single(message = "number must be divisible by 3")
-//     )
-//   )
-// )
-c3(6)
-// res5: Result = Right(value = ())
-c4(5)
-// res6: Result = Left(
-//   value = Or(
-//     errors = List(
-//       Single(message = "number must be even"),
-//       Single(message = "number must be divisible by 3")
-//     )
-//   )
-// )
-c4(6)
-// res7: Result = Right(value = ())
-c4(7)
-// res8: Result = Left(
-//   value = Or(
-//     errors = List(
-//       Single(message = "number must be even"),
-//       Single(message = "number must be divisible by 3")
-//     )
-//   )
-// )
-c6(5)
-// res9: Result = Left(value = Single(message = "number must be even"))
-c6(6)
-// res10: Result = Right(value = ())
-c7(5)
-// res11: Result = Left(
-//   value = Or(
-//     errors = List(
-//       Single(message = "number must be even"),
-//       Single(message = "number must be divisible by 3")
-//     )
-//   )
-// )
-c7(6)
-// res12: Result = Right(value = ())
-c7(7)
-// res13: Result = Left(
-//   value = Or(
-//     errors = List(
-//       Single(message = "number must be even"),
-//       Single(message = "number must be divisible by 3")
-//     )
+    val phoneNumberCheck = all[PhoneNumber](
+        checkProperty(_.prefix, phoneNumberPrefixCheck),
+        checkProperty(_.number, phoneNumberValueCheck)
+    )
+// phoneNumberCheck: PhoneNumber => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12526/1473912927@3c67e139
+
+    val contactCheck = all[Contact](
+        check(_.name.nonEmpty, "contact.name.empty"),
+        checkProperty(_.address, addressCheck),
+        checkEach(_.phoneNumbers, phoneNumberCheck)
+    )
+// contactCheck: Contact => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12526/1473912927@742e8e44
+
+    contactCheck(
+        Contact(
+            name = "Foo Bar",
+            address = Address(street = "Sesame Street 1", town = "Cookieburgh", country = "en", postcode = "00001"),
+            phoneNumbers = Seq(PhoneNumber("+44", "1234567", "ceo"), PhoneNumber("+41", "7654321", "sales"))
+        )
+    )
+// res0: Either[Error, Unit] = Right(value = ())
+
+    contactCheck(
+        Contact(
+            name = "",
+            address = Address(street = "", town = "", country = "ca", postcode = "foobar"),
+            phoneNumbers = Seq(PhoneNumber("+1", "11111111111", "ceo"), PhoneNumber("+01", "00000000", "sales"))
+        )
+    ).errorsOption
+// res1: Option[Seq[String]] = Some(
+//   value = List(
+//     "contact.name.empty",
+//     "address.street.empty",
+//     "address.town.empty",
+//     "address.postcode.invalid",
+//     "address.country.invalid",
+//     "address.phone.prefix.invalid"
 //   )
 // )
 ```
+
+All batteries included
+---
 
 ```scala
 import com.github.arturopala.validator.Validator._
@@ -129,7 +114,7 @@ import com.github.arturopala.validator.Validator._
 case class E(a: Int, b: String, c: Option[Int], d: Seq[Int], e: Either[String,E], f: Option[Seq[Int]], g: Boolean, h: Option[String])
 
 val divisibleByThree = check[Int](_ % 3 == 0, "must be divisible by three")
-// divisibleByThree: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12533/1718009837@38f42e9e
+// divisibleByThree: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12524/1809130928@15e92e77
 
 val validateE: Validate[E] = any[E](
     checkEquals(_.a.toString, _.b, "a must be same as b"),
@@ -159,7 +144,7 @@ val validateE: Validate[E] = any[E](
     checkIfOnlyOneIsTrue(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 or g must be true"),
     checkIfOnlyOneSetIsTrue[E](Seq(Set(_.a.inRange(0,10), _.g), Set(_.g,_.h.isDefined)),"only (g and a must not be 0..10) or (g and h.isDefined) must be true"),
 )
-// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$12566/1957311423@7e13e6bd
+// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$12554/1816495335@6a4ee4ea
 ```
 
 Usage
@@ -182,19 +167,19 @@ val validateStringLengthPair: Validate[(String,Int)] =
 and run it with the tested value:
 ```scala
 validateIsEven(2).isValid
-// res14: Boolean = true
+// res2: Boolean = true
 validateIsEven(1).isInvalid
-// res15: Boolean = true
+// res3: Boolean = true
 
 validateIsNonEmpty("").isInvalid
-// res16: Boolean = true
+// res4: Boolean = true
 validateIsNonEmpty("abc").isValid
-// res17: Boolean = true
+// res5: Boolean = true
 
 validateStringLengthPair(("abc",3)).isValid
-// res18: Boolean = true
+// res6: Boolean = true
 validateStringLengthPair(("ab",1)).isInvalid
-// res19: Boolean = true
+// res7: Boolean = true
 ```
 
 Validators can be combined using different strategies:
@@ -235,27 +220,27 @@ val evenPositivePair = validateIsEven * validateIsPositive
 ```
 ```scala
 evenAndPositive(2).isValid
-// res20: Boolean = true
+// res8: Boolean = true
 evenAndPositive(1).isInvalid
-// res21: Boolean = true
+// res9: Boolean = true
 evenAndPositive(-1).isInvalid
-// res22: Boolean = true
+// res10: Boolean = true
 evenAndPositive(-2).isInvalid
-// res23: Boolean = true
+// res11: Boolean = true
 
 evenOrPositive(2).isValid
-// res24: Boolean = true
+// res12: Boolean = true
 evenOrPositive(1).isValid
-// res25: Boolean = true
+// res13: Boolean = true
 evenOrPositive(-1).isInvalid
-// res26: Boolean = true
+// res14: Boolean = true
 evenOrPositive(-2).isValid
-// res27: Boolean = true
+// res15: Boolean = true
 
 evenPositivePair((2,1)).isValid
-// res28: Boolean = true
+// res16: Boolean = true
 evenPositivePair((1,2)).isInvalid
-// res29: Boolean = true
+// res17: Boolean = true
 ```
 
 Validate objects using `checkProperty`, `checkIfSome`, `checkEach`, `checkEachIfSome`, etc.:
@@ -284,9 +269,9 @@ val validateFoo: Validate[Foo] = all[Foo](
 ```
 ```scala
 validateFoo(Foo("X678",Some(2),true,Seq("abc"),Bar(500,Some(Seq(8)))))
-// res30: Result = Right(value = ())
+// res18: Result = Right(value = ())
 validateFoo(Foo("X67",Some(-1),true,Seq("abc",""),Bar(500,Some(Seq(7)))))
-// res31: Result = Left(
+// res19: Result = Left(
 //   value = And(
 //     errors = List(
 //       Single(message = "[Foo].a must follow pattern [A-Z]\\d{3,5}"),
@@ -301,11 +286,11 @@ validateFoo(Foo("X67",Some(-1),true,Seq("abc",""),Bar(500,Some(Seq(7)))))
 //   )
 // )
 validateFoo(Foo("X678",Some(2),false,Seq("abc"),Bar(99,None)))
-// res32: Result = Left(
+// res20: Result = Left(
 //   value = Single(message = "[Foo].e[Bar]Expected Some sequence but got None")
 // )
 validateFoo(Foo("X",Some(3),false,Seq("abc",""),Bar(-1,Some(Seq(7,8,9)))))
-// res33: Result = Left(
+// res21: Result = Left(
 //   value = And(
 //     errors = List(
 //       Single(message = "[Foo].a must follow pattern [A-Z]\\d{3,5}"),
@@ -319,20 +304,20 @@ validateFoo(Foo("X",Some(3),false,Seq("abc",""),Bar(-1,Some(Seq(7,8,9)))))
 
 Tag validator with prefix:
 ```scala
-evenOrPositive.apply(-1).errorString
-// res34: Option[String] = Some(
+evenOrPositive.apply(-1).errorsSummaryOption
+// res22: Option[String] = Some(
 //   value = "must be even integer or must be positive integer"
 // )
-("prefix: " @: evenOrPositive).apply(-1).errorString
-// res35: Option[String] = Some(
+("prefix: " @: evenOrPositive).apply(-1).errorsSummaryOption
+// res23: Option[String] = Some(
 //   value = "prefix: must be even integer or prefix: must be positive integer"
 // )
-evenOrPositive.withErrorPrefix("foo_").apply(-1).errorString
-// res36: Option[String] = Some(
+evenOrPositive.withErrorPrefix("foo_").apply(-1).errorsSummaryOption
+// res24: Option[String] = Some(
 //   value = "foo_must be even integer or foo_must be positive integer"
 // )
-evenOrPositive.withErrorPrefixComputed(i => s"($i) ").apply(-1).errorString
-// res37: Option[String] = Some(
+evenOrPositive.withErrorPrefixComputed(i => s"($i) ").apply(-1).errorsSummaryOption
+// res25: Option[String] = Some(
 //   value = "(-1) must be even integer or (-1) must be positive integer"
 // )
 ```
@@ -342,11 +327,11 @@ Debug validator:
 // debug input and output
 validateFoo.debug.apply(Foo("X678",Some(2),true,Seq("abc"),Bar(500,Some(Seq(8)))))
 // Foo(X678,Some(2),true,List(abc),Bar(500,Some(List(8)))) => Valid
-// res38: Result = Right(value = ())
+// res26: Result = Right(value = ())
 // debug only output
 validateFoo.apply(Foo("X678",Some(2),true,Seq("abc"),Bar(500,Some(Seq(8))))).debug
 // Valid
-// res39: Result = Right(value = ())
+// res27: Result = Right(value = ())
 ```
 
 Development

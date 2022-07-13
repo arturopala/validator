@@ -29,8 +29,11 @@ Here the validator is represented by the function type alias:
 
     type Validate[-T] = T => Result
 
-The rest of the API is focused on creating and combining instances of `Validate[T]`.
+The rest of the API is focused on creating and composing instances of `Validate[T]`.
 
+API
+---
+[See latest API - Scaladoc](https://arturopala.github.io/validator/latest/api/com/github/arturopala/validator/Validator$.html)
 
 Simple example
 ---
@@ -43,56 +46,78 @@ import com.github.arturopala.validator.Validator._
     case class Contact(name: String, address: Address, phoneNumbers: Seq[PhoneNumber])
 
     object Country {
-    val codes = Set("en", "de", "fr")
-    val telephonePrefixes = Set("+44", "+41", "+42")
+      val codes = Set("en", "de", "fr")
+      val telephonePrefixes = Set("+44", "+41", "+42")
     }
 
-    val postcodeCheck = check[String](_.matches("""\d{5}"""), "address.postcode.invalid")
-// postcodeCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12510/586924595@3d3a5f37
-    val countryCheck = check[String](_.isOneOf(Country.codes), "address.country.invalid")
-// countryCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12510/586924595@76c57b80
-    val phoneNumberPrefixCheck = check[String](_.isOneOf(Country.telephonePrefixes), "address.phone.prefix.invalid")
-// phoneNumberPrefixCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12510/586924595@699aa944
-    val phoneNumberValueCheck = check[String](_.matches("""\d{7}"""), "address.phone.prefix.invalid")
-// phoneNumberValueCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12510/586924595@76b6b6ab
+    val postcodeCheck = checkIsTrue[String](_.matches("""\d{5}"""), "address.postcode.invalid")
+// postcodeCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12538/500142449@4ebab6dd
+    val countryCheck = checkIsTrue[String](_.isOneOf(Country.codes), "address.country.invalid")
+// countryCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12538/500142449@5f716a75
+    val phoneNumberPrefixCheck =
+      checkIsTrue[String](_.isOneOf(Country.telephonePrefixes), "address.phone.prefix.invalid")
+// phoneNumberPrefixCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12538/500142449@5b959c93
+    val phoneNumberValueCheck = checkIsTrue[String](_.matches("""\d{7}"""), "address.phone.prefix.invalid")
+// phoneNumberValueCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12538/500142449@61e66406
 
     val addressCheck = all[Address](
-        check(_.street.nonEmpty, "address.street.empty"),
-        check(_.town.nonEmpty, "address.town.empty"),
-        checkProperty(_.postcode, postcodeCheck),
-        checkProperty(_.country, countryCheck)
+      checkIsTrue(_.street.nonEmpty, "address.street.empty"),
+      checkIsTrue(_.town.nonEmpty, "address.town.empty"),
+      checkWith(_.postcode, postcodeCheck),
+      checkWith(_.country, countryCheck)
     )
-// addressCheck: Address => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12512/1551824987@3b8a1ade
+// addressCheck: Address => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12540/823311910@130f599b
 
     val phoneNumberCheck = all[PhoneNumber](
-        checkProperty(_.prefix, phoneNumberPrefixCheck),
-        checkProperty(_.number, phoneNumberValueCheck)
+      checkWith(_.prefix, phoneNumberPrefixCheck),
+      checkWith(_.number, phoneNumberValueCheck)
     )
-// phoneNumberCheck: PhoneNumber => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12512/1551824987@664e6f54
+// phoneNumberCheck: PhoneNumber => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12540/823311910@47f9ab4d
 
     val contactCheck = all[Contact](
-        check(_.name.nonEmpty, "contact.name.empty"),
-        checkProperty(_.address, addressCheck),
-        checkEach(_.phoneNumbers, phoneNumberCheck)
+      checkIsTrue(_.name.nonEmpty, "contact.name.empty"),
+      checkWith(_.address, addressCheck),
+      checkEach(_.phoneNumbers, phoneNumberCheck)
     )
-// contactCheck: Contact => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12512/1551824987@5a223a50
+// contactCheck: Contact => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12540/823311910@307fd625
 
-    contactCheck(
-        Contact(
-            name = "Foo Bar",
-            address = Address(street = "Sesame Street 1", town = "Cookieburgh", country = "en", postcode = "00001"),
-            phoneNumbers = Seq(PhoneNumber("+44", "1234567", "ceo"), PhoneNumber("+41", "7654321", "sales"))
-        )
+    val c1 = Contact(
+      name = "Foo Bar",
+      address = Address(street = "Sesame Street 1", town = "Cookieburgh", country = "en", postcode = "00001"),
+      phoneNumbers = Seq(PhoneNumber("+44", "1234567", "ceo"), PhoneNumber("+41", "7654321", "sales"))
     )
-// res0: Either[Error, Unit] = Right(value = ())
+// c1: Contact = Contact(
+//   name = "Foo Bar",
+//   address = Address(
+//     street = "Sesame Street 1",
+//     town = "Cookieburgh",
+//     postcode = "00001",
+//     country = "en"
+//   ),
+//   phoneNumbers = List(
+//     PhoneNumber(prefix = "+44", number = "1234567", description = "ceo"),
+//     PhoneNumber(prefix = "+41", number = "7654321", description = "sales")
+//   )
+// )
 
-    contactCheck(
-        Contact(
-            name = "",
-            address = Address(street = "", town = "", country = "ca", postcode = "foobar"),
-            phoneNumbers = Seq(PhoneNumber("+1", "11111111111", "ceo"), PhoneNumber("+01", "00000000", "sales"))
-        )
-    ).errorsOption
+    contactCheck(c1).isValid
+// res0: Boolean = true
+
+    val c2 = Contact(
+      name = "",
+      address = Address(street = "", town = "", country = "ca", postcode = "foobar"),
+      phoneNumbers = Seq(PhoneNumber("+1", "11111111111", "ceo"), PhoneNumber("+01", "00000000", "sales"))
+    )
+// c2: Contact = Contact(
+//   name = "",
+//   address = Address(street = "", town = "", postcode = "foobar", country = "ca"),
+//   phoneNumbers = List(
+//     PhoneNumber(prefix = "+1", number = "11111111111", description = "ceo"),
+//     PhoneNumber(prefix = "+01", number = "00000000", description = "sales")
+//   )
+// )
+
+    contactCheck(c2).errorsOption
 // res1: Option[Seq[String]] = Some(
 //   value = List(
 //     "contact.name.empty",
@@ -113,8 +138,8 @@ import com.github.arturopala.validator.Validator._
 
 case class E(a: Int, b: String, c: Option[Int], d: Seq[Int], e: Either[String,E], f: Option[Seq[Int]], g: Boolean, h: Option[String])
 
-val divisibleByThree = check[Int](_ % 3 == 0, "must be divisible by three")
-// divisibleByThree: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12510/586924595@4ec14623
+val divisibleByThree = checkIsTrue[Int](_ % 3 == 0, "must be divisible by three")
+// divisibleByThree: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12538/500142449@55f8d02e
 
 val validateE: Validate[E] = any[E](
     checkEquals(_.a.toString, _.b, "a must be same as b"),
@@ -122,7 +147,7 @@ val validateE: Validate[E] = any[E](
     checkFromEither(_.e),
     checkIsDefined(_.c, "c must be defined"),
     checkIsEmpty(_.c, "c must be not defined"),
-    checkProperty(_.a, divisibleByThree),
+    checkWith(_.a, divisibleByThree),
     checkIfSome(_.c, divisibleByThree, isValidIfNone = true),
     all(
         checkIfSome(_.c, divisibleByThree, isValidIfNone = false),
@@ -144,7 +169,7 @@ val validateE: Validate[E] = any[E](
     checkIfOnlyOneIsTrue(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 or g must be true"),
     checkIfOnlyOneSetIsTrue[E](Seq(Set(_.a.inRange(0,10), _.g), Set(_.g,_.h.isDefined)),"only (g and a must not be 0..10) or (g and h.isDefined) must be true"),
 )
-// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$12540/762213364@3986a06e
+// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$12568/1978823879@40ecb653
 ```
 
 Usage
@@ -155,13 +180,13 @@ Create a simple validator:
 import com.github.arturopala.validator.Validator._
 
 val validateIsEven: Validate[Int] = 
-    check[Int](_ % 2 == 0, "must be even integer")
+    checkIsTrue[Int](_ % 2 == 0, "must be even integer")
 
 val validateIsNonEmpty: Validate[String] = 
-    check[String](_.nonEmpty, "must be non-empty string") 
+    checkIsTrue[String](_.nonEmpty, "must be non-empty string") 
 
 val validateStringLengthPair: Validate[(String,Int)] = 
-    check[(String,Int)]({case (s,l) => s.length() == l}, "string must be of expected length")
+    checkIsTrue[(String,Int)]({case (s,l) => s.length() == l}, "string must be of expected length")
 ```
 
 and run it with the tested value:
@@ -185,7 +210,7 @@ validateStringLengthPair(("ab",1)).isInvalid
 Validators can be combined using different strategies:
 ```scala
 val validateIsPositive: Validate[Int] = 
-    check[Int](_ > 0, "must be positive integer")
+    checkIsTrue[Int](_ > 0, "must be positive integer")
  
 // combine using ANY to validate whether all checks pass
 val validateIsEvenAndPositive: Validate[Int] = 
@@ -243,27 +268,27 @@ evenPositivePair((1,2)).isInvalid
 // res17: Boolean = true
 ```
 
-Validate objects using `checkProperty`, `checkIfSome`, `checkEach`, `checkEachIfSome`, etc.:
+Validate objects using `checkWith`, `checkIfSome`, `checkEach`, `checkEachIfSome`, etc.:
 ```scala
 case class Foo(a: String, b: Option[Int], c: Boolean, d: Seq[String], e: Bar)
 case class Bar(f: BigDecimal, h: Option[Seq[Int]])
 
 val validateBar: Validate[Bar] = all[Bar](
-    check(_.f.inRange(0,100),".f must be in range 0..100 inclusive"),
+    checkIsTrue(_.f.inRange(0,100),".f must be in range 0..100 inclusive"),
     checkEachIfSomeWithErrorPrefix(_.h, validateIsEvenAndPositive, i => s".h[$i] ", isValidIfNone = false)
 ).withErrorPrefix("[Bar]")
 
 val prefix: AnyRef => String = o => s"[${o.getClass.getSimpleName}]"
 
 val validateFoo: Validate[Foo] = all[Foo](
-    checkProperty(_.a, validateIsNonEmpty),
-    check(_.a.matches("[A-Z]\\d{3,5}"),".a must follow pattern [A-Z]\\d{3,5}"),
+    checkWith(_.a, validateIsNonEmpty),
+    checkIsTrue(_.a.matches("[A-Z]\\d{3,5}"),".a must follow pattern [A-Z]\\d{3,5}"),
     checkIfSome[Foo,Int](_.b, evenOrPositive, isValidIfNone = true).withErrorPrefix(".b"),
     conditionally(
         _.c,
-        checkEachWithErrorPrefix(_.d, validateIsNonEmpty & check(_.lengthMax(64),"64 characters maximum"), 
+        checkEachWithErrorPrefix(_.d, validateIsNonEmpty & checkIsTrue(_.lengthMax(64),"64 characters maximum"), 
         i => s".d[$i] "),
-        checkProperty[Foo,Bar](_.e, validateBar).withErrorPrefix(".e")
+        checkWith[Foo,Bar](_.e, validateBar).withErrorPrefix(".e")
     )
 ).withErrorPrefixComputed(prefix)
 ```

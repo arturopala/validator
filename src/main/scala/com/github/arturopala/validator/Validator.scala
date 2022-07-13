@@ -24,93 +24,24 @@ object Validator {
     /** Returns first error message. */
     def headMessage: String
 
-    /** Returns all error messages in a depth-first flattened sequence. */
+    /** Returns all errors' messages in a depth-first flattened sequence. */
     def messages: Seq[String]
 
-    /** Combines all erorro messages into a single sentence. */
+    /** Combines all errors' messages into a single sentence. */
     def summary: String
 
+    /** Maps error messages with the provided function. */
     def map(f: String => String): Error
 
+    /** Combines this error with another one using logical conjunction. */
     def and(other: Error): Error
+
+    /** Combines this error with another one using logical disjunction. */
     def or(other: Error): Error
   }
-
-  /** Single error representation. */
-  final case class Single private[Validator] (message: String) extends Error {
-    override def headMessage: String = message
-    override def messages: Seq[String] = Seq(message)
-    override def summary: String = message
-    override def map(f: String => String): Error = Single(f(message))
-    override def and(other: Error): Error = other match {
-      case Single(otherMessage) if message == otherMessage => this
-      case And(otherErrors)                                => And((this +: otherErrors).distinct)
-      case _                                               => And(Seq(this, other))
-    }
-    override def or(other: Error): Error = other match {
-      case Single(otherMessage) if message == otherMessage => this
-      case Or(otherErrors)                                 => Or((this +: otherErrors).distinct)
-      case _                                               => Or(Seq(this, other))
-    }
-  }
-
-  /** Sequence of errors resulting from the logical conjunction of constraints. */
-  final case class And private[Validator] (errors: Seq[Error]) extends Error {
-    override def headMessage: String = errors.head.headMessage
-    override def messages: Seq[String] = errors.flatMap(_.messages)
-
-    override def summary: String = errors
-      .map {
-        case Single(m) => m
-        case e: And    => e.summary
-        case e: Or     => s"(${e.summary})"
-      }
-      .mkString(" and ")
-
-    override def map(f: String => String): Error = And(errors.map(_.map(f)).distinct)
-
-    override def and(other: Error): Error = other match {
-      case And(otherErrors) if otherErrors.sameElements(errors) => this
-      case And(otherErrors)                                     => And((errors ++ otherErrors).distinct)
-      case Single(_)                                            => And((errors :+ other).distinct)
-      case _                                                    => And(Seq(this, other))
-    }
-
-    override def or(other: Error): Error = other match {
-      case Or(otherErrors) => Or((this +: otherErrors).distinct)
-      case _               => Or(Seq(this, other))
-    }
-  }
-
-  /** Sequence of errors resulting from the logical disjunction of constraints. */
-  final case class Or private[Validator] (errors: Seq[Error]) extends Error {
-    override def headMessage: String = errors.head.headMessage
-    override def messages: Seq[String] = errors.flatMap(_.messages)
-
-    override def summary: String = errors
-      .map {
-        case Single(m) => m
-        case e: And    => s"(${e.summary})"
-        case e: Or     => e.summary
-      }
-      .mkString(" or ")
-
-    override def map(f: String => String): Error = Or(errors.map(_.map(f)).distinct)
-
-    override def and(other: Error): Error = other match {
-      case And(otherErrors) => And((this +: otherErrors).distinct)
-      case _                => And(Seq(this, other))
-    }
-
-    override def or(other: Error): Error = other match {
-      case Or(otherErrors) if otherErrors.sameElements(errors) => this
-      case Or(otherErrors)                                     => Or((errors ++ otherErrors).distinct)
-      case Single(_)                                           => Or((errors :+ other).distinct)
-      case _                                                   => Or(Seq(this, other))
-    }
-  }
-
   object Error {
+
+    /** Wraps a message as a single error. */
     def apply(message: String): Error = Single(message)
   }
 
@@ -120,29 +51,40 @@ object Validator {
   /** The validator function type. */
   type Validate[-T] = T => Result
 
+  /** Invalid result helpers. */
   object Invalid {
+
+    /** Creates representation of a failed validation result with single error message. */
     def apply(errorMessage: String): Result =
       Left(Single(errorMessage))
 
+    /** Creates representation of a failed validation result with multiple error messages. */
     def apply(firstErrorMessage: String, nextErrorMessages: String*): Result =
       Left(And(Single(firstErrorMessage) +: nextErrorMessages.map(Single.apply)))
   }
 
-  /** Successsful validation result. */
+  /** Successsful validation result alias. */
   val Valid = Right(())
 
-  /** Combine provided validator functions. */
+  /** Runs all provided checks. */
   def apply[T](constraints: Validate[T]*): Validate[T] =
     (entity: T) =>
       constraints
-        .foldLeft[Result](Valid)((v, fx) => v and fx(entity))
+        .foldLeft[Result](Valid)((v, fx) => v.and(fx(entity)))
 
+  /** Runs all provided checks. Provided as a named alias to the apply method. */
+  def validate[T](constraints: Validate[T]*): Validate[T] =
+    apply(constraints: _*)
+
+  /** Validator that always succeeds. */
   def always[T]: Validate[T] = (_: T) => Valid
 
+  /** Validator that always fails. */
   def never[T]: Validate[T] = (_: T) => Left(Error("this validation never succeeds"))
 
   /** Conjuction. Succeeds only if all constraints are valid. */
-  def all[T](constraints: Validate[T]*): Validate[T] = apply(constraints: _*)
+  def all[T](constraints: Validate[T]*): Validate[T] =
+    apply(constraints: _*)
 
   /** Conjuction. Succeeds only if all constraints are valid, otherwise prepend errorPrefix. */
   def allWithPrefix[T](errorPrefix: String, constraints: Validate[T]*): Validate[T] =
@@ -253,22 +195,29 @@ object Validator {
         .and(constraintC(entity._3))
         .and(constraintD(entity._4))
 
-  def validate[T](constraints: Validate[T]*): Validate[T] =
-    (entity: T) =>
-      constraints
-        .foldLeft[Result](Valid)((v, fx) => v.and(fx(entity)))
-
   /** Validate if the test passes, otherwise fail with error. */
-  def check[T](test: T => Boolean, error: String): Validate[T] =
+  def checkIsTrue[T](test: T => Boolean, error: String): Validate[T] =
     a => Either.cond(test(a), (), Error(error))
+
+  /** Validate if the test fails, otherwise fail with error. */
+  def checkIsFalse[T](test: T => Boolean, error: String): Validate[T] =
+    a => Either.cond(!test(a), (), Error(error))
+
+  /** Validate using the provided implicit constraint applied to the extracted property. */
+  def checkWithImplicitly[T, E](element: T => E)(implicit constraint: Validate[E]): Validate[T] =
+    (entity: T) => constraint(element(entity))
+
+  /** Validate with the provided constraint applied to the extracted property. */
+  def checkWith[T, E](element: T => E, constraint: Validate[E]): Validate[T] =
+    (entity: T) => constraint(element(entity))
 
   /** Validate if two properties return the same value. */
   def checkEquals[T, A](value1: T => A, value2: T => A, error: String): Validate[T] =
-    check((entity: T) => value1(entity) == value2(entity), error)
+    checkIsTrue((entity: T) => value1(entity) == value2(entity), error)
 
   /** Validate if two properties return different value. */
   def checkNotEquals[T, A](value1: T => A, value2: T => A, error: String): Validate[T] =
-    check((entity: T) => value1(entity) != value2(entity), error)
+    checkIsTrue((entity: T) => value1(entity) != value2(entity), error)
 
   /** Validate if the test returns Right, otherwise fail with Left error. */
   def checkFromEither[T](test: T => Either[String, Any]): Validate[T] =
@@ -280,11 +229,7 @@ object Validator {
 
   /** Validate if the test returns None, otherwise fail with error. */
   def checkIsEmpty[T](test: T => Option[Any], error: String): Validate[T] =
-    check((entity: T) => test(entity).isEmpty, error)
-
-  /** Apply constraint to the extracted property. */
-  def checkProperty[T, E](element: T => E, constraint: Validate[E]): Validate[T] =
-    (entity: T) => constraint(element(entity))
+    checkIsTrue((entity: T) => test(entity).isEmpty, error)
 
   /** Apply constraint to the extracted property if defined, otherwise follow isValidIfNone flag. */
   def checkIfSome[T, E](
@@ -737,6 +682,80 @@ object Validator {
     def debug: Result = {
       println(result.fold(e => s"Invalid(${e.summary})", _ => "Valid"))
       result
+    }
+  }
+
+  /** Single error representation. */
+  final case class Single private[Validator] (message: String) extends Error {
+    override def headMessage: String = message
+    override def messages: Seq[String] = Seq(message)
+    override def summary: String = message
+    override def map(f: String => String): Error = Single(f(message))
+    override def and(other: Error): Error = other match {
+      case Single(otherMessage) if message == otherMessage => this
+      case And(otherErrors)                                => And((this +: otherErrors).distinct)
+      case _                                               => And(Seq(this, other))
+    }
+    override def or(other: Error): Error = other match {
+      case Single(otherMessage) if message == otherMessage => this
+      case Or(otherErrors)                                 => Or((this +: otherErrors).distinct)
+      case _                                               => Or(Seq(this, other))
+    }
+  }
+
+  /** Sequence of errors resulting from the logical conjunction of constraints. */
+  final case class And private[Validator] (errors: Seq[Error]) extends Error {
+    override def headMessage: String = errors.head.headMessage
+    override def messages: Seq[String] = errors.flatMap(_.messages)
+
+    override def summary: String = errors
+      .map {
+        case Single(m) => m
+        case e: And    => e.summary
+        case e: Or     => s"(${e.summary})"
+      }
+      .mkString(" and ")
+
+    override def map(f: String => String): Error = And(errors.map(_.map(f)).distinct)
+
+    override def and(other: Error): Error = other match {
+      case And(otherErrors) if otherErrors.sameElements(errors) => this
+      case And(otherErrors)                                     => And((errors ++ otherErrors).distinct)
+      case Single(_)                                            => And((errors :+ other).distinct)
+      case _                                                    => And(Seq(this, other))
+    }
+
+    override def or(other: Error): Error = other match {
+      case Or(otherErrors) => Or((this +: otherErrors).distinct)
+      case _               => Or(Seq(this, other))
+    }
+  }
+
+  /** Sequence of errors resulting from the logical disjunction of constraints. */
+  final case class Or private[Validator] (errors: Seq[Error]) extends Error {
+    override def headMessage: String = errors.head.headMessage
+    override def messages: Seq[String] = errors.flatMap(_.messages)
+
+    override def summary: String = errors
+      .map {
+        case Single(m) => m
+        case e: And    => s"(${e.summary})"
+        case e: Or     => e.summary
+      }
+      .mkString(" or ")
+
+    override def map(f: String => String): Error = Or(errors.map(_.map(f)).distinct)
+
+    override def and(other: Error): Error = other match {
+      case And(otherErrors) => And((this +: otherErrors).distinct)
+      case _                => And(Seq(this, other))
+    }
+
+    override def or(other: Error): Error = other match {
+      case Or(otherErrors) if otherErrors.sameElements(errors) => this
+      case Or(otherErrors)                                     => Or((errors ++ otherErrors).distinct)
+      case Single(_)                                           => Or((errors :+ other).distinct)
+      case _                                                   => Or(Seq(this, other))
     }
   }
 

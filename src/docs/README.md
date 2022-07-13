@@ -29,8 +29,11 @@ Here the validator is represented by the function type alias:
 
     type Validate[-T] = T => Result
 
-The rest of the API is focused on creating and combining instances of `Validate[T]`.
+The rest of the API is focused on creating and composing instances of `Validate[T]`.
 
+API
+---
+[See latest API - Scaladoc](https://arturopala.github.io/validator/latest/api/com/github/arturopala/validator/Validator$.html)
 
 Simple example
 ---
@@ -43,48 +46,49 @@ Simple example
     case class Contact(name: String, address: Address, phoneNumbers: Seq[PhoneNumber])
 
     object Country {
-    val codes = Set("en", "de", "fr")
-    val telephonePrefixes = Set("+44", "+41", "+42")
+      val codes = Set("en", "de", "fr")
+      val telephonePrefixes = Set("+44", "+41", "+42")
     }
 
-    val postcodeCheck = check[String](_.matches("""\d{5}"""), "address.postcode.invalid")
-    val countryCheck = check[String](_.isOneOf(Country.codes), "address.country.invalid")
-    val phoneNumberPrefixCheck = check[String](_.isOneOf(Country.telephonePrefixes), "address.phone.prefix.invalid")
-    val phoneNumberValueCheck = check[String](_.matches("""\d{7}"""), "address.phone.prefix.invalid")
+    val postcodeCheck = checkIsTrue[String](_.matches("""\d{5}"""), "address.postcode.invalid")
+    val countryCheck = checkIsTrue[String](_.isOneOf(Country.codes), "address.country.invalid")
+    val phoneNumberPrefixCheck =
+      checkIsTrue[String](_.isOneOf(Country.telephonePrefixes), "address.phone.prefix.invalid")
+    val phoneNumberValueCheck = checkIsTrue[String](_.matches("""\d{7}"""), "address.phone.prefix.invalid")
 
     val addressCheck = all[Address](
-        check(_.street.nonEmpty, "address.street.empty"),
-        check(_.town.nonEmpty, "address.town.empty"),
-        checkProperty(_.postcode, postcodeCheck),
-        checkProperty(_.country, countryCheck)
+      checkIsTrue(_.street.nonEmpty, "address.street.empty"),
+      checkIsTrue(_.town.nonEmpty, "address.town.empty"),
+      checkWith(_.postcode, postcodeCheck),
+      checkWith(_.country, countryCheck)
     )
 
     val phoneNumberCheck = all[PhoneNumber](
-        checkProperty(_.prefix, phoneNumberPrefixCheck),
-        checkProperty(_.number, phoneNumberValueCheck)
+      checkWith(_.prefix, phoneNumberPrefixCheck),
+      checkWith(_.number, phoneNumberValueCheck)
     )
 
     val contactCheck = all[Contact](
-        check(_.name.nonEmpty, "contact.name.empty"),
-        checkProperty(_.address, addressCheck),
-        checkEach(_.phoneNumbers, phoneNumberCheck)
+      checkIsTrue(_.name.nonEmpty, "contact.name.empty"),
+      checkWith(_.address, addressCheck),
+      checkEach(_.phoneNumbers, phoneNumberCheck)
     )
 
-    contactCheck(
-        Contact(
-            name = "Foo Bar",
-            address = Address(street = "Sesame Street 1", town = "Cookieburgh", country = "en", postcode = "00001"),
-            phoneNumbers = Seq(PhoneNumber("+44", "1234567", "ceo"), PhoneNumber("+41", "7654321", "sales"))
-        )
+    val c1 = Contact(
+      name = "Foo Bar",
+      address = Address(street = "Sesame Street 1", town = "Cookieburgh", country = "en", postcode = "00001"),
+      phoneNumbers = Seq(PhoneNumber("+44", "1234567", "ceo"), PhoneNumber("+41", "7654321", "sales"))
     )
 
-    contactCheck(
-        Contact(
-            name = "",
-            address = Address(street = "", town = "", country = "ca", postcode = "foobar"),
-            phoneNumbers = Seq(PhoneNumber("+1", "11111111111", "ceo"), PhoneNumber("+01", "00000000", "sales"))
-        )
-    ).errorsOption
+    contactCheck(c1).isValid
+
+    val c2 = Contact(
+      name = "",
+      address = Address(street = "", town = "", country = "ca", postcode = "foobar"),
+      phoneNumbers = Seq(PhoneNumber("+1", "11111111111", "ceo"), PhoneNumber("+01", "00000000", "sales"))
+    )
+
+    contactCheck(c2).errorsOption
 
 ```
 
@@ -96,7 +100,7 @@ import com.github.arturopala.validator.Validator._
 
 case class E(a: Int, b: String, c: Option[Int], d: Seq[Int], e: Either[String,E], f: Option[Seq[Int]], g: Boolean, h: Option[String])
 
-val divisibleByThree = check[Int](_ % 3 == 0, "must be divisible by three")
+val divisibleByThree = checkIsTrue[Int](_ % 3 == 0, "must be divisible by three")
 
 val validateE: Validate[E] = any[E](
     checkEquals(_.a.toString, _.b, "a must be same as b"),
@@ -104,7 +108,7 @@ val validateE: Validate[E] = any[E](
     checkFromEither(_.e),
     checkIsDefined(_.c, "c must be defined"),
     checkIsEmpty(_.c, "c must be not defined"),
-    checkProperty(_.a, divisibleByThree),
+    checkWith(_.a, divisibleByThree),
     checkIfSome(_.c, divisibleByThree, isValidIfNone = true),
     all(
         checkIfSome(_.c, divisibleByThree, isValidIfNone = false),
@@ -136,13 +140,13 @@ Create a simple validator:
 import com.github.arturopala.validator.Validator._
 
 val validateIsEven: Validate[Int] = 
-    check[Int](_ % 2 == 0, "must be even integer")
+    checkIsTrue[Int](_ % 2 == 0, "must be even integer")
 
 val validateIsNonEmpty: Validate[String] = 
-    check[String](_.nonEmpty, "must be non-empty string") 
+    checkIsTrue[String](_.nonEmpty, "must be non-empty string") 
 
 val validateStringLengthPair: Validate[(String,Int)] = 
-    check[(String,Int)]({case (s,l) => s.length() == l}, "string must be of expected length")
+    checkIsTrue[(String,Int)]({case (s,l) => s.length() == l}, "string must be of expected length")
 ```
 
 and run it with the tested value:
@@ -160,7 +164,7 @@ validateStringLengthPair(("ab",1)).isInvalid
 Validators can be combined using different strategies:
 ```scala mdoc:silent
 val validateIsPositive: Validate[Int] = 
-    check[Int](_ > 0, "must be positive integer")
+    checkIsTrue[Int](_ > 0, "must be positive integer")
  
 // combine using ANY to validate whether all checks pass
 val validateIsEvenAndPositive: Validate[Int] = 
@@ -208,27 +212,27 @@ evenPositivePair((2,1)).isValid
 evenPositivePair((1,2)).isInvalid
 ```
 
-Validate objects using `checkProperty`, `checkIfSome`, `checkEach`, `checkEachIfSome`, etc.:
+Validate objects using `checkWith`, `checkIfSome`, `checkEach`, `checkEachIfSome`, etc.:
 ```scala mdoc:silent
 case class Foo(a: String, b: Option[Int], c: Boolean, d: Seq[String], e: Bar)
 case class Bar(f: BigDecimal, h: Option[Seq[Int]])
 
 val validateBar: Validate[Bar] = all[Bar](
-    check(_.f.inRange(0,100),".f must be in range 0..100 inclusive"),
+    checkIsTrue(_.f.inRange(0,100),".f must be in range 0..100 inclusive"),
     checkEachIfSomeWithErrorPrefix(_.h, validateIsEvenAndPositive, i => s".h[$i] ", isValidIfNone = false)
 ).withErrorPrefix("[Bar]")
 
 val prefix: AnyRef => String = o => s"[${o.getClass.getSimpleName}]"
 
 val validateFoo: Validate[Foo] = all[Foo](
-    checkProperty(_.a, validateIsNonEmpty),
-    check(_.a.matches("[A-Z]\\d{3,5}"),".a must follow pattern [A-Z]\\d{3,5}"),
+    checkWith(_.a, validateIsNonEmpty),
+    checkIsTrue(_.a.matches("[A-Z]\\d{3,5}"),".a must follow pattern [A-Z]\\d{3,5}"),
     checkIfSome[Foo,Int](_.b, evenOrPositive, isValidIfNone = true).withErrorPrefix(".b"),
     conditionally(
         _.c,
-        checkEachWithErrorPrefix(_.d, validateIsNonEmpty & check(_.lengthMax(64),"64 characters maximum"), 
+        checkEachWithErrorPrefix(_.d, validateIsNonEmpty & checkIsTrue(_.lengthMax(64),"64 characters maximum"), 
         i => s".d[$i] "),
-        checkProperty[Foo,Bar](_.e, validateBar).withErrorPrefix(".e")
+        checkWith[Foo,Bar](_.e, validateBar).withErrorPrefix(".e")
     )
 ).withErrorPrefixComputed(prefix)
 ```

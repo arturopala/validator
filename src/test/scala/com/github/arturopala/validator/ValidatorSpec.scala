@@ -32,7 +32,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   test("check") {
-    val c = check[Int](a => a % 2 == 0, "number must be even")
+    val c = checkIsTrue[Int](a => a % 2 == 0, "number must be even")
     assertEquals(c(0), Valid)
     assertEquals(c(2), Valid)
     assertEquals(c(4), Valid)
@@ -41,8 +41,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   test("and combinator") {
-    val c1 = check[Int](a => a % 2 == 0, "number must be even")
-    val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
+    val c1 = checkIsTrue[Int](a => a % 2 == 0, "number must be even")
+    val c2 = checkIsTrue[Int](a => a % 3 == 0, "number must be divisible by 3")
     val c = c1 and c2
     assertEquals(c(0), Valid)
     assertEquals(c(1).errorsSummaryOption, Some("number must be even and number must be divisible by 3"))
@@ -55,8 +55,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   test("or combinator") {
-    val c1 = check[Int](a => a % 2 == 0, "number must be even")
-    val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
+    val c1 = checkIsTrue[Int](a => a % 2 == 0, "number must be even")
+    val c2 = checkIsTrue[Int](a => a % 3 == 0, "number must be divisible by 3")
     val c = c1 or c2
     assertEquals(c(0), Valid)
     assertEquals(c(1).errorsSummaryOption, Some("number must be even or number must be divisible by 3"))
@@ -69,8 +69,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   test("& combinator") {
-    val c1 = check[Int](a => a % 2 == 0, "number must be even")
-    val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
+    val c1 = checkIsTrue[Int](a => a % 2 == 0, "number must be even")
+    val c2 = checkIsTrue[Int](a => a % 3 == 0, "number must be divisible by 3")
     val c = c1 & c2
     assertEquals(c(0), Valid)
     assertEquals(c(1).errorsSummaryOption, Some("number must be even and number must be divisible by 3"))
@@ -83,8 +83,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   test("| combinator") {
-    val c1 = check[Int](a => a % 2 == 0, "number must be even")
-    val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
+    val c1 = checkIsTrue[Int](a => a % 2 == 0, "number must be even")
+    val c2 = checkIsTrue[Int](a => a % 3 == 0, "number must be divisible by 3")
     val c = c1 | c2
     assertEquals(c(0), Valid)
     assertEquals(c(1).errorsSummaryOption, Some("number must be even or number must be divisible by 3"))
@@ -97,9 +97,9 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   test("| with & combinator") {
-    val c1 = check[Int](a => a % 2 == 0, "number must be even")
-    val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
-    val c3 = check[Int](a => a < 10, "number must be less than 10")
+    val c1 = checkIsTrue[Int](a => a % 2 == 0, "number must be even")
+    val c2 = checkIsTrue[Int](a => a % 3 == 0, "number must be divisible by 3")
+    val c3 = checkIsTrue[Int](a => a < 10, "number must be less than 10")
     val c = (c1 | c2) & c3
     assertEquals(c(0), Valid)
     assertEquals(c(1).errorsSummaryOption, Some("number must be even or number must be divisible by 3"))
@@ -118,9 +118,9 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   test("| with | combinator") {
-    val c1 = check[Int](a => a % 2 == 0, "number must be even")
-    val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
-    val c3 = check[Int](a => a > 10, "number must be greater than 10")
+    val c1 = checkIsTrue[Int](a => a % 2 == 0, "number must be even")
+    val c2 = checkIsTrue[Int](a => a % 3 == 0, "number must be divisible by 3")
+    val c3 = checkIsTrue[Int](a => a > 10, "number must be greater than 10")
     val c = c1 | c2 | c3
     assertEquals(c(0), Valid)
     assertEquals(
@@ -147,9 +147,9 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   test("& with | combinator") {
-    val c1 = check[Int](a => a % 2 == 0, "number must be even")
-    val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
-    val c3 = check[Int](a => a > 10, "number must be greater than 10")
+    val c1 = checkIsTrue[Int](a => a % 2 == 0, "number must be even")
+    val c2 = checkIsTrue[Int](a => a % 3 == 0, "number must be divisible by 3")
+    val c3 = checkIsTrue[Int](a => a > 10, "number must be greater than 10")
     val c = (c1 & c2) | c3
     assertEquals(c(0), Valid)
     assertEquals(
@@ -173,9 +173,9 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   test("& with & combinator") {
-    val c1 = check[Int](a => a % 2 == 0, "number must be even")
-    val c2 = check[Int](a => a % 3 == 0, "number must be divisible by 3")
-    val c3 = check[Int](a => a < 10, "number must be lower than 10")
+    val c1 = checkIsTrue[Int](a => a % 2 == 0, "number must be even")
+    val c2 = checkIsTrue[Int](a => a % 3 == 0, "number must be divisible by 3")
+    val c3 = checkIsTrue[Int](a => a < 10, "number must be lower than 10")
     val c = c1 & c2 & c3
     assertEquals(c(0), Valid)
     assertEquals(
@@ -209,20 +209,20 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   test("nonEmptyStringValidator") {
-    val nonEmptyStringValidator = Validator.check[String](_.nonEmpty, "string must be non-empty")
+    val nonEmptyStringValidator = Validator.checkIsTrue[String](_.nonEmpty, "string must be non-empty")
     assert(nonEmptyStringValidator("").isInvalid)
     assert(nonEmptyStringValidator("a").isValid)
   }
 
   test("emptyStringValidator") {
-    val emptyStringValidator = Validator.check[String](_.isEmpty(), "string must be empty")
+    val emptyStringValidator = Validator.checkIsTrue[String](_.isEmpty(), "string must be empty")
     assert(emptyStringValidator("").isValid)
     assert(emptyStringValidator("a").isInvalid)
   }
 
   property("Validator.all combines provided validators to verify if all checks passes") {
-    val nonEmptyStringValidator = Validator.check[String](_.nonEmpty, "string must be non-empty")
-    val emptyStringValidator = Validator.check[String](_.isEmpty(), "string must be empty")
+    val nonEmptyStringValidator = Validator.checkIsTrue[String](_.nonEmpty, "string must be non-empty")
+    val emptyStringValidator = Validator.checkIsTrue[String](_.isEmpty(), "string must be empty")
     val validate: Validate[String] = nonEmptyStringValidator & emptyStringValidator
 
     forAll { (string: String) =>
@@ -239,8 +239,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   property("Validator.all combines provided checks to verify if all checks passes") {
-    val nonEmptyStringValidator = check[String](_.nonEmpty, "string must be non-empty")
-    val emptyStringValidator = check[String](_.isEmpty(), "string must be empty")
+    val nonEmptyStringValidator = checkIsTrue[String](_.nonEmpty, "string must be non-empty")
+    val emptyStringValidator = checkIsTrue[String](_.isEmpty(), "string must be empty")
     val validate: Validate[String] = nonEmptyStringValidator & emptyStringValidator
 
     forAll { (string: String) =>
@@ -257,8 +257,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   property("Validator.all(with error prefix) combines provided validators to verify if all checks passes") {
-    val nonEmptyStringValidator = Validator.check[String](_.nonEmpty, "string must be non-empty")
-    val emptyStringValidator = Validator.check[String](_.isEmpty(), "string must be empty")
+    val nonEmptyStringValidator = Validator.checkIsTrue[String](_.nonEmpty, "string must be non-empty")
+    val emptyStringValidator = Validator.checkIsTrue[String](_.isEmpty(), "string must be empty")
     val validate: Validate[String] =
       Validator.allWithPrefix("foo: ", nonEmptyStringValidator, emptyStringValidator)
 
@@ -285,8 +285,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   property("Validator.all(with error prefix) combines provided checks to verify if all checks passes") {
-    val nonEmptyStringValidator = check[String](_.nonEmpty, "string must be non-empty")
-    val emptyStringValidator = check[String](_.isEmpty(), "string must be empty")
+    val nonEmptyStringValidator = checkIsTrue[String](_.nonEmpty, "string must be non-empty")
+    val emptyStringValidator = checkIsTrue[String](_.isEmpty(), "string must be empty")
     val validate: Validate[String] =
       Validator.allWithPrefix("foo: ", nonEmptyStringValidator, emptyStringValidator)
 
@@ -313,8 +313,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   property("Validator.all(with calculated error prefix) combines provided validators to verify if all checks passes") {
-    val nonEmptyStringValidator = Validator.check[String](_.nonEmpty, "string must be non-empty")
-    val emptyStringValidator = Validator.check[String](_.isEmpty(), "string must be empty")
+    val nonEmptyStringValidator = Validator.checkIsTrue[String](_.nonEmpty, "string must be non-empty")
+    val emptyStringValidator = Validator.checkIsTrue[String](_.isEmpty(), "string must be empty")
 
     val calculatePrefix: String => String = s => s"${s.take(1)}: "
 
@@ -341,8 +341,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   property("Validator.all(with calculated error prefix) combines provided checks to verify if all checks passes") {
-    val nonEmptyStringValidator = check[String](_.nonEmpty, "string must be non-empty")
-    val emptyStringValidator = check[String](_.isEmpty(), "string must be empty")
+    val nonEmptyStringValidator = checkIsTrue[String](_.nonEmpty, "string must be non-empty")
+    val emptyStringValidator = checkIsTrue[String](_.isEmpty(), "string must be empty")
 
     val calculatePrefix: String => String = s => s"${s.take(1)}: "
 
@@ -369,9 +369,9 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   property("Validator.any combines provided validators to verify if any of the checks passes") {
-    val hasDigitValidator = Validator.check[String](_.exists(_.isDigit), "some characters must be digits")
+    val hasDigitValidator = Validator.checkIsTrue[String](_.exists(_.isDigit), "some characters must be digits")
     val hasLowerCaseValidator =
-      Validator.check[String](_.exists(_.isLower), "some characters must be lower case")
+      Validator.checkIsTrue[String](_.exists(_.isLower), "some characters must be lower case")
     val validate: Validate[String] = hasDigitValidator | hasLowerCaseValidator
 
     forAllNoShrink(Gen.alphaChar, Gen.numChar) { (a: Char, d: Char) =>
@@ -403,9 +403,9 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   property("Validator.any(with error prefix) combines provided validators to verify if any of the checks passes") {
-    val hasDigitValidator = Validator.check[String](_.exists(_.isDigit), "some characters must be digits")
+    val hasDigitValidator = Validator.checkIsTrue[String](_.exists(_.isDigit), "some characters must be digits")
     val hasLowerCaseValidator =
-      Validator.check[String](_.exists(_.isLower), "some characters must be lower case")
+      Validator.checkIsTrue[String](_.exists(_.isLower), "some characters must be lower case")
 
     forAllNoShrink(Gen.alphaChar, Gen.numChar) { (a: Char, d: Char) =>
       (a.isLower) ==>
@@ -427,9 +427,9 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   property(
     "Validator.any(with calculated error prefix) combines provided validators to verify if any of the checks passes"
   ) {
-    val hasDigitValidator = Validator.check[String](_.exists(_.isDigit), "some characters must be digits")
+    val hasDigitValidator = Validator.checkIsTrue[String](_.exists(_.isDigit), "some characters must be digits")
     val hasLowerCaseValidator =
-      Validator.check[String](_.exists(_.isLower), "some characters must be lower case")
+      Validator.checkIsTrue[String](_.exists(_.isLower), "some characters must be lower case")
 
     val calculatePrefix: String => String = s => s"${s.take(1)}_"
 
@@ -447,10 +447,11 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   test("Validator.conditionally runs the test and follows with either first or second check") {
-    val validateOnlyDigits = Validator.check[String](_.forall(_.isDigit), "all characters must be digits")
-    val validateNonEmpty = Validator.check[String](_.nonEmpty, "must be non empty string")
-    def validateLength(length: Int) = Validator.check[String](_.length() == length, s"must have $length characters")
-    val validateAllUpperCase = Validator.check[String](_.forall(_.isUpper), "all characters must be upper case")
+    val validateOnlyDigits = Validator.checkIsTrue[String](_.forall(_.isDigit), "all characters must be digits")
+    val validateNonEmpty = Validator.checkIsTrue[String](_.nonEmpty, "must be non empty string")
+    def validateLength(length: Int) =
+      Validator.checkIsTrue[String](_.length() == length, s"must have $length characters")
+    val validateAllUpperCase = Validator.checkIsTrue[String](_.forall(_.isUpper), "all characters must be upper case")
     val validate: Validate[String] =
       Validator.conditionally[String](
         _.headOption.contains('0'),
@@ -474,8 +475,9 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   test("Validator.whenTrue runs the test and if true then follows with the next check") {
-    val validateOnlyDigits = Validator.check[String](_.forall(_.isDigit), "all characters must be digits")
-    def validateLength(length: Int) = Validator.check[String](_.length() == length, s"must have $length characters")
+    val validateOnlyDigits = Validator.checkIsTrue[String](_.forall(_.isDigit), "all characters must be digits")
+    def validateLength(length: Int) =
+      Validator.checkIsTrue[String](_.length() == length, s"must have $length characters")
     val validate: Validate[String] =
       Validator.whenTrue[String](_.headOption.contains('0'), validateLength(3) & validateOnlyDigits)
 
@@ -495,8 +497,8 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   test("Validator.whenFalse runs the test and if false then tries the next check") {
-    val validateNonEmpty = Validator.check[String](_.nonEmpty, "must be non empty string")
-    val validateAllUpperCase = Validator.check[String](_.forall(_.isUpper), "all characters must be upper case")
+    val validateNonEmpty = Validator.checkIsTrue[String](_.nonEmpty, "must be non empty string")
+    val validateAllUpperCase = Validator.checkIsTrue[String](_.forall(_.isUpper), "all characters must be upper case")
     val validate: Validate[String] =
       Validator.whenFalse[String](_.headOption.contains('0'), validateNonEmpty & validateAllUpperCase)
 
@@ -522,11 +524,12 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
 
   test("Validator.when runs the guard check and follows with either first or second check") {
     val validateStartsWithZero =
-      Validator.check[String](_.headOption.contains('0'), "first character must be a Zero")
-    val validateOnlyDigits = Validator.check[String](_.forall(_.isDigit), "all characters must be digits")
-    val validateNonEmpty = Validator.check[String](_.nonEmpty, "must be non empty string")
-    def validateLength(length: Int) = Validator.check[String](_.length() == length, s"must have $length characters")
-    val validateAllUpperCase = Validator.check[String](_.forall(_.isUpper), "all characters must be upper case")
+      Validator.checkIsTrue[String](_.headOption.contains('0'), "first character must be a Zero")
+    val validateOnlyDigits = Validator.checkIsTrue[String](_.forall(_.isDigit), "all characters must be digits")
+    val validateNonEmpty = Validator.checkIsTrue[String](_.nonEmpty, "must be non empty string")
+    def validateLength(length: Int) =
+      Validator.checkIsTrue[String](_.length() == length, s"must have $length characters")
+    val validateAllUpperCase = Validator.checkIsTrue[String](_.forall(_.isUpper), "all characters must be upper case")
     val validate: Validate[String] =
       Validator.when(
         validateStartsWithZero,
@@ -551,9 +554,10 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
 
   test("Validator.whenValid runs the guard check and if valid then follows with the next check") {
     val validateStartsWithZero =
-      Validator.check[String](_.headOption.contains('0'), "first character must be a Zero")
-    val validateOnlyDigits = Validator.check[String](_.forall(_.isDigit), "all characters must be digits")
-    def validateLength(length: Int) = Validator.check[String](_.length() == length, s"must have $length characters")
+      Validator.checkIsTrue[String](_.headOption.contains('0'), "first character must be a Zero")
+    val validateOnlyDigits = Validator.checkIsTrue[String](_.forall(_.isDigit), "all characters must be digits")
+    def validateLength(length: Int) =
+      Validator.checkIsTrue[String](_.length() == length, s"must have $length characters")
     val validate1: Validate[String] =
       Validator.whenValid(validateStartsWithZero, validateLength(3) & validateOnlyDigits)
     val validate2: Validate[String] =
@@ -584,9 +588,9 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
 
   test("Validator.whenInvalid runs the guard check and if invalid then tries the next check") {
     val validateStartsWithZero =
-      Validator.check[String](_.headOption.contains('0'), "first character must be a Zero")
-    val validateNonEmpty = Validator.check[String](_.nonEmpty, "must be non empty string")
-    val validateAllUpperCase = Validator.check[String](_.forall(_.isUpper), "all characters must be upper case")
+      Validator.checkIsTrue[String](_.headOption.contains('0'), "first character must be a Zero")
+    val validateNonEmpty = Validator.checkIsTrue[String](_.nonEmpty, "must be non empty string")
+    val validateAllUpperCase = Validator.checkIsTrue[String](_.forall(_.isUpper), "all characters must be upper case")
     val validate1: Validate[String] =
       Validator.whenInvalid(validateStartsWithZero, validateNonEmpty & validateAllUpperCase)
     val validate2: Validate[String] =
@@ -619,9 +623,9 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   property("Validator.product combines provided validators to verify tuples of values") {
-    val hasDigitValidator = Validator.check[Char](_.isDigit, "character must be a digit")
+    val hasDigitValidator = Validator.checkIsTrue[Char](_.isDigit, "character must be a digit")
     val hasLowerCaseValidator =
-      Validator.check[Char](_.isLower, "character must be lower case")
+      Validator.checkIsTrue[Char](_.isLower, "character must be lower case")
     val validate: Validate[(Char, Char)] = hasDigitValidator * hasLowerCaseValidator
 
     forAllNoShrink(Gen.alphaChar, Gen.numChar) { (a: Char, d: Char) =>
@@ -639,18 +643,28 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     }
   }
 
-  property("Validator.check returns Valid only if condition fulfilled") {
+  property("Validator.checkIsTrue returns Valid only if condition fulfilled") {
     val validate =
-      Validator.check[Foo]((foo: Foo) => foo.bar.startsWith("a"), "foo.bar must start with A")
+      Validator.checkIsTrue[Foo]((foo: Foo) => foo.bar.startsWith("a"), "foo.bar must start with a")
 
     Prop.all(
       forAll { (string: String) =>
         validate(Foo(s"a$string")).isValid
-        validate(Foo(s"a$string")).errorsSummaryOption.isEmpty
-      },
-      forAll { (string: String, char: Char) =>
-        (char != 'a') ==>
-          (validate(Foo(s"$char$string")).errorsSummaryOption == Some("foo.bar must start with A"))
+        validate(Foo(s"b$string")).isInvalid
+        validate(Foo(s"b$string")).errorsSummaryOption == Some("foo.bar must start with a")
+      }
+    )
+  }
+
+  property("Validator.checkIsFalse returns Valid only if condition not met") {
+    val validate =
+      Validator.checkIsFalse[Foo]((foo: Foo) => foo.bar.startsWith("a"), "foo.bar must not start with a")
+
+    Prop.all(
+      forAll { (string: String) =>
+        validate(Foo(s"b$string")).isValid
+        validate(Foo(s"a$string")).isInvalid
+        validate(Foo(s"a$string")).errorsSummaryOption == Some("foo.bar must not start with a")
       }
     )
   }
@@ -727,10 +741,11 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     }
   }
 
-  property("Validator.checkProperty (Validate) returns Valid only if extracted property passes check") {
-    val nonEmptyStringValidator: Validate[String] = Validator.check[String](_.nonEmpty, "string must be non-empty")
+  property("Validator.checkWith returns Valid only if extracted property passes check") {
+    val nonEmptyStringValidator: Validate[String] =
+      Validator.checkIsTrue[String](_.nonEmpty, "string must be non-empty")
     val validate: Validate[Foo] =
-      Validator.checkProperty((foo: Foo) => foo.bar, nonEmptyStringValidator)
+      Validator.checkWith((foo: Foo) => foo.bar, nonEmptyStringValidator)
 
     forAll { (string: String) =>
       if (string.nonEmpty)
@@ -740,11 +755,25 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     }
   }
 
-  property("Validator.checkProperty(with error prefix) returns Valid only if nested validator returns Valid") {
-    val nonEmptyStringValidator = Validator.check[String](_.nonEmpty, "string must be non-empty")
+  property("Validator.checkWithImplicitly returns Valid only if extracted property passes check") {
+    implicit val nonEmptyStringValidator: Validate[String] =
+      Validator.checkIsTrue[String](_.nonEmpty, "string must be non-empty")
+    val validate: Validate[Foo] =
+      Validator.checkWithImplicitly((foo: Foo) => foo.bar)
+
+    forAll { (string: String) =>
+      if (string.nonEmpty)
+        validate(Foo(string)).isValid
+      else
+        validate(Foo(string)).errorsSummaryOption == Some("string must be non-empty")
+    }
+  }
+
+  property("Validator.checkUsing(with error prefix) returns Valid only if nested validator returns Valid") {
+    val nonEmptyStringValidator = Validator.checkIsTrue[String](_.nonEmpty, "string must be non-empty")
     val validate: Validate[Foo] =
       Validator
-        .checkProperty[Foo, String]((foo: Foo) => foo.bar, nonEmptyStringValidator)
+        .checkWith[Foo, String]((foo: Foo) => foo.bar, nonEmptyStringValidator)
         .withErrorPrefix("Foo.bar ")
 
     forAll { (string: String) =>
@@ -756,7 +785,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   property("Validator.checkIfSome returns Valid only if nested validator returns Valid") {
-    val positiveIntegerValidator = Validator.check[Int](_ > 0, "must be positive integer")
+    val positiveIntegerValidator = Validator.checkIsTrue[Int](_ > 0, "must be positive integer")
     val validate: Validate[Foo] =
       Validator.checkIfSome[Foo, Int]((foo: Foo) => foo.bazOpt, positiveIntegerValidator)
 
@@ -772,7 +801,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   property("Validator.checkIfSome(with invalid if None) returns Valid only if nested validator returns Valid") {
-    val positiveIntegerValidator = Validator.check[Int](_ > 0, "must be positive integer")
+    val positiveIntegerValidator = Validator.checkIsTrue[Int](_ > 0, "must be positive integer")
     val validate: Validate[Foo] =
       Validator.checkIfSome[Foo, Int]((foo: Foo) => foo.bazOpt, positiveIntegerValidator, isValidIfNone = false)
 
@@ -788,7 +817,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   property("Validator.checkIfSome(with error prefix) returns Valid only if nested validator returns Valid") {
-    val positiveIntegerValidator = Validator.check[Int](_ > 0, "must be positive integer")
+    val positiveIntegerValidator = Validator.checkIsTrue[Int](_ > 0, "must be positive integer")
     val validate: Validate[Foo] =
       Validator
         .checkIfSome[Foo, Int]((foo: Foo) => foo.bazOpt, positiveIntegerValidator, isValidIfNone = true)
@@ -808,7 +837,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   property(
     "Validator.checkIfSome(with error prefix and invalid if none) returns Valid only if nested validator returns Valid"
   ) {
-    val positiveIntegerValidator = Validator.check[Int](_ > 0, "must be positive integer")
+    val positiveIntegerValidator = Validator.checkIsTrue[Int](_ > 0, "must be positive integer")
     val validate: Validate[Foo] =
       Validator
         .checkIfSome[Foo, Int]((foo: Foo) => foo.bazOpt, positiveIntegerValidator, isValidIfNone = false)
@@ -829,7 +858,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     "Validator.checkEach returns Valid only if all elements of the sequence passes check"
   ) {
     case class Ints(seq: Seq[Int])
-    val negativeIntegerValidator = Validator.check[Int](_ < 0, "must be negative integer")
+    val negativeIntegerValidator = Validator.checkIsTrue[Int](_ < 0, "must be negative integer")
     val validate: Validate[Ints] =
       Validator.checkEach[Ints, Int]((i: Ints) => i.seq, negativeIntegerValidator)
 
@@ -848,7 +877,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     "Validator.checkEach(with error prefix fx) returns Valid only if all elements of the sequence passes check"
   ) {
     case class Ints(seq: Seq[Int])
-    val negativeIntegerValidator = Validator.check[Int](_ < 0, "must be negative integer")
+    val negativeIntegerValidator = Validator.checkIsTrue[Int](_ < 0, "must be negative integer")
     val validate: Validate[Ints] =
       Validator
         .checkEachWithErrorPrefix[Ints, Int]((i: Ints) => i.seq, negativeIntegerValidator, (i: Int) => s"is[$i] ")
@@ -869,7 +898,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     "Validator.checkEach(with error prefix fx) returns Valid only if all elements of the sequence passes check"
   ) {
     case class Ints(seq: Seq[Int])
-    val negativeIntegerValidator = Validator.check[Int](_ < 0, "must be negative integer")
+    val negativeIntegerValidator = Validator.checkIsTrue[Int](_ < 0, "must be negative integer")
     val validate: Validate[Ints] =
       Validator.checkEachWithErrorPrefix[Ints, Int](
         (i: Ints) => i.seq,
@@ -897,7 +926,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     "Validator.checkEachIfNonEmpty returns Valid only if all elements of the sequence passes check"
   ) {
     case class Ints(seq: Seq[Int])
-    val negativeIntegerValidator = Validator.check[Int](_ < 0, "must be negative integer")
+    val negativeIntegerValidator = Validator.checkIsTrue[Int](_ < 0, "must be negative integer")
     val validate: Validate[Ints] =
       Validator.checkEachIfNonEmpty[Ints, Int]((i: Ints) => i.seq, negativeIntegerValidator)
 
@@ -916,7 +945,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     "Validator.checkEachIfNonEmpty(with error prefix fx) returns Valid only if all elements of the sequence passes check"
   ) {
     case class Ints(seq: Seq[Int])
-    val negativeIntegerValidator = Validator.check[Int](_ < 0, "must be negative integer")
+    val negativeIntegerValidator = Validator.checkIsTrue[Int](_ < 0, "must be negative integer")
     val validate: Validate[Ints] =
       Validator
         .checkEachIfNonEmptyWithErrorPrefix[Ints, Int](
@@ -941,7 +970,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     "Validator.checkEachIfNonEmpty(with error prefix fx) returns Valid only if all elements of the sequence passes check"
   ) {
     case class Ints(seq: Seq[Int])
-    val negativeIntegerValidator = Validator.check[Int](_ < 0, "must be negative integer")
+    val negativeIntegerValidator = Validator.checkIsTrue[Int](_ < 0, "must be negative integer")
     val validate: Validate[Ints] =
       Validator.checkEachIfNonEmptyWithErrorPrefix[Ints, Int](
         (i: Ints) => i.seq,
@@ -969,7 +998,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     "Validator.checkEachIfSome returns Valid only if None or all elements of the sequence passes check"
   ) {
     case class Ints(seqOpt: Option[Seq[Int]])
-    val positiveIntegerValidator = Validator.check[Int](_ > 0, "must be positive integer")
+    val positiveIntegerValidator = Validator.checkIsTrue[Int](_ > 0, "must be positive integer")
     val validate: Validate[Ints] =
       Validator.checkEachIfSome[Ints, Int]((i: Ints) => i.seqOpt, positiveIntegerValidator)
 
@@ -989,7 +1018,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     "Validator.checkEachIfSome returns Valid only if sequence is defined and all elements of the sequence passes check"
   ) {
     case class Ints(seqOpt: Option[Seq[Int]])
-    val positiveIntegerValidator = Validator.check[Int](_ > 0, "must be positive integer")
+    val positiveIntegerValidator = Validator.checkIsTrue[Int](_ > 0, "must be positive integer")
     val validate: Validate[Ints] =
       Validator.checkEachIfSome[Ints, Int]((i: Ints) => i.seqOpt, positiveIntegerValidator, isValidIfNone = false)
 
@@ -1009,7 +1038,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     "Validator.checkEachIfSome(with error prefix) returns Valid only if sequence is None or all elements of the sequence passes check"
   ) {
     case class Ints(seqOpt: Option[Seq[Int]])
-    val positiveIntegerValidator = Validator.check[Int](_ > 0, "must be positive integer")
+    val positiveIntegerValidator = Validator.checkIsTrue[Int](_ > 0, "must be positive integer")
     val validate: Validate[Ints] =
       Validator.checkEachIfSomeWithErrorPrefix[Ints, Int](
         (i: Ints) => i.seqOpt,
@@ -1034,7 +1063,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     "Validator.checkEachIfSome(with error prefix) returns Valid only if sequence is defined and all elements of the sequence passes check"
   ) {
     case class Ints(seqOpt: Option[Seq[Int]])
-    val positiveIntegerValidator = Validator.check[Int](_ > 0, "must be positive integer")
+    val positiveIntegerValidator = Validator.checkIsTrue[Int](_ > 0, "must be positive integer")
     val validate: Validate[Ints] =
       Validator.checkEachIfSomeWithErrorPrefix[Ints, Int](
         (i: Ints) => i.seqOpt,
@@ -1498,26 +1527,27 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       val telephonePrefixes = Set("+44", "+41", "+42")
     }
 
-    val postcodeCheck = check[String](_.matches("""\d{5}"""), "address.postcode.invalid")
-    val countryCheck = check[String](_.isOneOf(Country.codes), "address.country.invalid")
-    val phoneNumberPrefixCheck = check[String](_.isOneOf(Country.telephonePrefixes), "address.phone.prefix.invalid")
-    val phoneNumberValueCheck = check[String](_.matches("""\d{7}"""), "address.phone.prefix.invalid")
+    val postcodeCheck = checkIsTrue[String](_.matches("""\d{5}"""), "address.postcode.invalid")
+    val countryCheck = checkIsTrue[String](_.isOneOf(Country.codes), "address.country.invalid")
+    val phoneNumberPrefixCheck =
+      checkIsTrue[String](_.isOneOf(Country.telephonePrefixes), "address.phone.prefix.invalid")
+    val phoneNumberValueCheck = checkIsTrue[String](_.matches("""\d{7}"""), "address.phone.prefix.invalid")
 
     val addressCheck = all[Address](
-      check(_.street.nonEmpty, "address.street.empty"),
-      check(_.town.nonEmpty, "address.town.empty"),
-      checkProperty(_.postcode, postcodeCheck),
-      checkProperty(_.country, countryCheck)
+      checkIsTrue(_.street.nonEmpty, "address.street.empty"),
+      checkIsTrue(_.town.nonEmpty, "address.town.empty"),
+      checkWith(_.postcode, postcodeCheck),
+      checkWith(_.country, countryCheck)
     )
 
     val phoneNumberCheck = all[PhoneNumber](
-      checkProperty(_.prefix, phoneNumberPrefixCheck),
-      checkProperty(_.number, phoneNumberValueCheck)
+      checkWith(_.prefix, phoneNumberPrefixCheck),
+      checkWith(_.number, phoneNumberValueCheck)
     )
 
     val contactCheck = all[Contact](
-      check(_.name.nonEmpty, "contact.name.empty"),
-      checkProperty(_.address, addressCheck),
+      checkIsTrue(_.name.nonEmpty, "contact.name.empty"),
+      checkWith(_.address, addressCheck),
       checkEach(_.phoneNumbers, phoneNumberCheck)
     )
 

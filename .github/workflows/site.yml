@@ -22,13 +22,12 @@ jobs:
       - name: Generate README
         run: sbt dynver docs/mdoc 
       - name: Commit README changes
-        uses: EndBug/add-and-commit@v7
+        uses: EndBug/add-and-commit@v9.1.1
         with:
           author_name: Artur Opala
           author_email: opala.artur@gmail.com
           message: 'Update README'
-          add: '*.md'   
-          branch: main 
+          add: '*.md'
       - name: Publish API documentation on Github
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}

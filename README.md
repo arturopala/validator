@@ -51,14 +51,14 @@ import com.github.arturopala.validator.Validator._
     }
 
     val postcodeCheck = checkIsTrue[String](_.matches("""\d{5}"""), "address.postcode.invalid")
-// postcodeCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$8958/0x00000008024e9040@4101f129
+// postcodeCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12595/110601693@1aa8e28c
     val countryCheck = checkIsTrue[String](_.isOneOf(Country.codes), "address.country.invalid")
-// countryCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$8958/0x00000008024e9040@e365ed8
+// countryCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12595/110601693@1c66b131
     val phoneNumberPrefixCheck =
       checkIsTrue[String](_.isOneOf(Country.telephonePrefixes), "address.phone.prefix.invalid")
-// phoneNumberPrefixCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$8958/0x00000008024e9040@9a49ac6
+// phoneNumberPrefixCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12595/110601693@a01bb44
     val phoneNumberValueCheck = checkIsTrue[String](_.matches("""\d{7}"""), "address.phone.prefix.invalid")
-// phoneNumberValueCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$8958/0x00000008024e9040@3465b895
+// phoneNumberValueCheck: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12595/110601693@5acf87d2
 
     val addressCheck = all[Address](
       checkIsTrue(_.street.nonEmpty, "address.street.empty"),
@@ -66,20 +66,20 @@ import com.github.arturopala.validator.Validator._
       checkWith(_.postcode, postcodeCheck),
       checkWith(_.country, countryCheck)
     )
-// addressCheck: Address => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$8960/0x00000008024ee840@4acd6f20
+// addressCheck: Address => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12597/511851922@7b7fdbfa
 
     val phoneNumberCheck = all[PhoneNumber](
       checkWith(_.prefix, phoneNumberPrefixCheck),
       checkWith(_.number, phoneNumberValueCheck)
     )
-// phoneNumberCheck: PhoneNumber => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$8960/0x00000008024ee840@7631383f
+// phoneNumberCheck: PhoneNumber => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12597/511851922@5239029d
 
     val contactCheck = all[Contact](
       checkIsTrue(_.name.nonEmpty, "contact.name.empty"),
       checkWith(_.address, addressCheck),
       checkEach(_.phoneNumbers, phoneNumberCheck)
     )
-// contactCheck: Contact => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$8960/0x00000008024ee840@5beeee95
+// contactCheck: Contact => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12597/511851922@55655805
 
     val c1 = Contact(
       name = "Foo Bar",
@@ -139,7 +139,7 @@ import com.github.arturopala.validator.Validator._
 case class E(a: Int, b: String, c: Option[Int], d: Seq[Int], e: Either[String,E], f: Option[Seq[Int]], g: Boolean, h: Option[String])
 
 val divisibleByThree = checkIsTrue[Int](_ % 3 == 0, "must be divisible by three")
-// divisibleByThree: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$8958/0x00000008024e9040@1c73e0b5
+// divisibleByThree: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12595/110601693@30339bc2
 
 val validateE: Validate[E] = any[E](
     checkEquals(_.a.toString, _.b, "a must be same as b"),
@@ -169,7 +169,7 @@ val validateE: Validate[E] = any[E](
     checkIfOnlyOneIsTrue(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 or g must be true"),
     checkIfOnlyOneSetIsTrue[E](Seq(Set(_.a.inRange(0,10), _.g), Set(_.g,_.h.isDefined)),"only (g and a must not be 0..10) or (g and h.isDefined) must be true"),
 )
-// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$8988/0x0000000802500840@15406aad
+// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$12625/1558542229@7a4778f5
 ```
 
 Usage

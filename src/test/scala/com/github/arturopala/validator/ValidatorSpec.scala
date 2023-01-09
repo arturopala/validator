@@ -54,6 +54,31 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     assertEquals(c(7).errorsSummaryOption, Some("number must be even and number must be divisible by 3"))
   }
 
+  test("and combinator with super/sub types") {
+    val c1 = checkIsTrue[AnyVal](a => a ne null, "number must be not null")
+    val c2 = checkIsTrue[Int](a => a % 3 == 0, "number must be divisible by 3")
+    val c: Validate[Int] = c1 and c2
+    val d: Validate[Int] = c2 and c1
+
+    assertEquals(c(0), Valid)
+    assertEquals(c(1).errorsSummaryOption, Some("number must be divisible by 3"))
+    assertEquals(c(2).errorsSummaryOption, Some("number must be divisible by 3"))
+    assertEquals(c(3).errorsSummaryOption, None)
+    assertEquals(c(4).errorsSummaryOption, Some("number must be divisible by 3"))
+    assertEquals(c(5).errorsSummaryOption, Some("number must be divisible by 3"))
+    assertEquals(c(6), Valid)
+    assertEquals(c(7).errorsSummaryOption, Some("number must be divisible by 3"))
+
+    assertEquals(d(0), Valid)
+    assertEquals(d(1).errorsSummaryOption, Some("number must be divisible by 3"))
+    assertEquals(d(2).errorsSummaryOption, Some("number must be divisible by 3"))
+    assertEquals(d(3).errorsSummaryOption, None)
+    assertEquals(d(4).errorsSummaryOption, Some("number must be divisible by 3"))
+    assertEquals(d(5).errorsSummaryOption, Some("number must be divisible by 3"))
+    assertEquals(d(6), Valid)
+    assertEquals(d(7).errorsSummaryOption, Some("number must be divisible by 3"))
+  }
+
   test("or combinator") {
     val c1 = checkIsTrue[Int](a => a % 2 == 0, "number must be even")
     val c2 = checkIsTrue[Int](a => a % 3 == 0, "number must be divisible by 3")
@@ -66,6 +91,31 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     assertEquals(c(5).errorsSummaryOption, Some("number must be even or number must be divisible by 3"))
     assertEquals(c(6), Valid)
     assertEquals(c(7).errorsSummaryOption, Some("number must be even or number must be divisible by 3"))
+  }
+
+  test("or combinator with super/sub types") {
+    val c1 = checkIsTrue[AnyVal](a => a eq null, "number must be null")
+    val c2 = checkIsTrue[Int](a => a % 3 == 0, "number must be divisible by 3")
+    val c: Validate[Int] = c1 or c2
+    val d: Validate[Int] = c2 or c1
+
+    assertEquals(c(0), Valid)
+    assertEquals(c(1).errorsSummaryOption, Some("number must be null or number must be divisible by 3"))
+    assertEquals(c(2).errorsSummaryOption, Some("number must be null or number must be divisible by 3"))
+    assertEquals(c(3), Valid)
+    assertEquals(c(4).errorsSummaryOption, Some("number must be null or number must be divisible by 3"))
+    assertEquals(c(5).errorsSummaryOption, Some("number must be null or number must be divisible by 3"))
+    assertEquals(c(6), Valid)
+    assertEquals(c(7).errorsSummaryOption, Some("number must be null or number must be divisible by 3"))
+
+    assertEquals(d(0), Valid)
+    assertEquals(d(1).errorsSummaryOption, Some("number must be divisible by 3 or number must be null"))
+    assertEquals(d(2).errorsSummaryOption, Some("number must be divisible by 3 or number must be null"))
+    assertEquals(d(3), Valid)
+    assertEquals(d(4).errorsSummaryOption, Some("number must be divisible by 3 or number must be null"))
+    assertEquals(d(5).errorsSummaryOption, Some("number must be divisible by 3 or number must be null"))
+    assertEquals(d(6), Valid)
+    assertEquals(d(7).errorsSummaryOption, Some("number must be divisible by 3 or number must be null"))
   }
 
   test("& combinator") {
@@ -1569,3 +1619,5 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
 }
+
+object ValidatorSpec {}

@@ -545,8 +545,8 @@ object Validator {
   final implicit class ValidateOps[T](val thisValidate: T => Result) {
 
     /** Conjuction. Compose this check with another check and expect them both to pass. */
-    def and(otherValidate: Validate[T]): Validate[T] =
-      (entity: T) =>
+    def and[T1 <: T](otherValidate: Validate[T1]): Validate[T1] =
+      (entity: T1) =>
         thisValidate(entity)
           .fold(
             error1 =>
@@ -558,8 +558,8 @@ object Validator {
           )
 
     /** Disjunction. Compose this check with another check and expect at least one of them to pass. */
-    def or(otherValidate: Validate[T]): Validate[T] =
-      (entity: T) =>
+    def or[T1 <: T](otherValidate: Validate[T1]): Validate[T1] =
+      (entity: T1) =>
         thisValidate(entity).left
           .flatMap(error1 =>
             otherValidate(entity).left
@@ -567,11 +567,11 @@ object Validator {
           )
 
     /** Conjuction. Compose this check with another check and expect them both to pass. */
-    def &(otherValidate: Validate[T]): Validate[T] =
+    def &[T1 <: T](otherValidate: Validate[T1]): Validate[T1] =
       thisValidate.and(otherValidate)
 
     /** Disjunction. Compose this check with another check and expect at least one of them to pass. */
-    def |(otherValidate: Validate[T]): Validate[T] =
+    def |[T1 <: T](otherValidate: Validate[T1]): Validate[T1] =
       thisValidate.or(otherValidate)
 
     /** Product. Compose this check with another check to construct tuple of checks. */

@@ -230,7 +230,7 @@ val validateFoo: Validate[Foo] = all[Foo](
     checkIfSome[Foo,Int](_.b, evenOrPositive, isValidIfNone = true).withErrorPrefix(".b"),
     conditionally(
         _.c,
-        checkEachWithErrorPrefix(_.d, validateIsNonEmpty & checkIsTrue(_.lengthMax(64),"64 characters maximum"), 
+        checkEachWithErrorPrefix(_.d, validateIsNonEmpty & checkIsTrue[String](_.lengthMax(64),"64 characters maximum"), 
         i => s".d[$i] "),
         checkWith[Foo,Bar](_.e, validateBar).withErrorPrefix(".e")
     )

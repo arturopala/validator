@@ -7,31 +7,14 @@ on:
       - '.github/site.yml'
       - 'src/docs/**'
       - 'src/site/**'
-      - '*.scala'
-  release:  
+      - '*.scala' 
 
 jobs:
   site:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - run: git fetch --tags --unshallow -f
-      - name: Setup scala
-        uses: olafurpg/setup-scala@v13
-      - name: Generate README
-        run: sbt dynver docs/mdoc 
-      - name: Commit README changes
-        uses: EndBug/add-and-commit@v9.1.1
-        with:
-          author_name: Artur Opala
-          author_email: opala.artur@gmail.com
-          message: 'Update README'
-          add: '*.md'
-      - name: Publish API documentation on Github
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
-        run: |
-          echo "> Publish GitHub Pages"
-          sbt makeSite publishToGitHubPages   
+    uses: arturopala/workflows/.github/workflows/site.yml@main
+    with:
+      author_name: Artur Opala
+      author_email: opala.artur@gmail.com
+    secrets:
+      PAT: ${{ secrets.PAT }}  
     

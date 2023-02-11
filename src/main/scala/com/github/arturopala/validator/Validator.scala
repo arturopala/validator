@@ -208,6 +208,10 @@ object Validator {
     (entity: T) => constraint(element(entity))
 
   /** Validate with the provided constraint applied to the extracted property. */
+  def checkProp[T, E](element: T => E, constraint: Validate[E]): Validate[T] =
+    (entity: T) => constraint(element(entity))
+
+  /** Validate with the provided constraint applied to the extracted property. */
   def checkWith[T, E](element: T => E, constraint: Validate[E]): Validate[T] =
     (entity: T) => constraint(element(entity))
 
@@ -242,6 +246,19 @@ object Validator {
         .map(constraint)
         .getOrElse(
           if (isValidIfNone) Valid else Left(Error("Expected Some value but got None"))
+        )
+
+  /** Apply constraint to the extracted property of type Either[L,R]. */
+  def checkEither[T, L, R](
+    element: T => Either[L, R],
+    constraintLeft: Validate[L],
+    constraintRight: Validate[R]
+  ): Validate[T] =
+    (entity: T) =>
+      element(entity)
+        .fold(
+          constraintLeft,
+          constraintRight
         )
 
   /** Apply constraint to each element of the extracted sequence. */
@@ -506,6 +523,10 @@ object Validator {
       value <= max && multipleOf.forall(a => (value % a).abs < 0.0001)
     def gteq(min: Int, multipleOf: Option[Int] = None): Boolean =
       value >= min && multipleOf.forall(a => (value % a).abs < 0.0001)
+    def positive: Boolean = value > 0
+    def zeroOrPositive: Boolean = value >= 0
+    def negative: Boolean = value < 0
+    def zeroOrNegative: Boolean = value <= 0
   }
 
   final implicit class OptionalIntMatchers(val value: Option[Int]) extends AnyVal {
@@ -515,6 +536,10 @@ object Validator {
       value.forall(v => v <= max && multipleOf.forall(a => (v % a).abs < 0.0001))
     def gteq(min: Int, multipleOf: Option[Int] = None): Boolean =
       value.forall(v => v >= min && multipleOf.forall(a => (v % a).abs < 0.0001))
+    def positive: Boolean = value.forall(v => v > 0)
+    def zeroOrPositive: Boolean = value.forall(v => v >= 0)
+    def negative: Boolean = value.forall(v => v < 0)
+    def zeroOrNegative: Boolean = value.forall(v => v <= 0)
   }
 
   final implicit class BigDecimalMatchers(val value: BigDecimal) extends AnyVal {
@@ -758,5 +783,13 @@ object Validator {
       case _                                                   => Or(Seq(this, other))
     }
   }
+
+  // common checks
+
+  def validateStringNonEmpty(errorMessage: String) =
+    checkIsTrue[String](_.nonEmpty, errorMessage)
+
+  def validateCollectionNonEmpty(errorMessage: String) =
+    checkIsTrue[Iterable[_]](_.nonEmpty, errorMessage)
 
 }

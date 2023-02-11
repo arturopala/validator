@@ -18,7 +18,7 @@ and ScalaJS version `@SCALA_JS_VERSION@`, and ScalaNative version `@SCALA_NATIVE
 
 Motivation
 ---
-Writing validation rules for the complex data structure is a must for developers. There are multiple ways available in Scala to do the validation but still one of the simplest ways to represent and manipulate validation results is to use the built-in `Either`. 
+Writing validation rules for the complex data structure is an everyday business developer's life. There are multiple ways available in Scala to do the validation but still one of the simplest ways to represent and manipulate validation results is to use the built-in `Either`. 
 
 This library provides a thin wrapper around `Either` with a simpler API and opinionated type parameters. 
 
@@ -31,64 +31,141 @@ Here the validator is represented by the function type alias:
 
 The rest of the API is focused on creating and composing instances of `Validate[T]`.
 
-API
+Scaladoc
 ---
-[See latest API - Scaladoc](https://arturopala.github.io/validator/latest/api/com/github/arturopala/validator/Validator$.html)
+<https://arturopala.github.io/validator/latest/api/com/github/arturopala/validator/Validator$.html>
+
+Try in Scastie!
+---
+<https://scastie.scala-lang.org/arturopala/EsOKlzujSy6cGWrh8qZb9g/31>
 
 Simple example
 ---
 
 ```scala mdoc
-    import com.github.arturopala.validator.Validator._
+import com.github.arturopala.validator.Validator._
 
-    case class Address(street: String, town: String, postcode: String, country: String)
-    case class PhoneNumber(prefix: String, number: String, description: String)
-    case class Contact(name: String, address: Address, phoneNumbers: Seq[PhoneNumber])
+case class Address(
+    street: String,
+    town: String,
+    postcode: String,
+    country: String
+)
+case class PhoneNumber(
+    prefix: String, 
+    number: String, 
+    description: String
+)
+case class Contact(
+    name: String,
+    address: Either[String, Address],
+    phoneNumbers: Seq[PhoneNumber] = Seq.empty,
+    email: Option[String] = None
+)
 
-    object Country {
-      val codes = Set("en", "de", "fr")
-      val telephonePrefixes = Set("+44", "+41", "+42")
-    }
+object Country {
+  val codes = Set("en", "de", "fr")
+  val telephonePrefixes = Set("+44", "+41", "+42")
+}
 
-    val postcodeCheck = checkIsTrue[String](_.matches("""\d{5}"""), "address.postcode.invalid")
-    val countryCheck = checkIsTrue[String](_.isOneOf(Country.codes), "address.country.invalid")
-    val phoneNumberPrefixCheck =
-      checkIsTrue[String](_.isOneOf(Country.telephonePrefixes), "address.phone.prefix.invalid")
-    val phoneNumberValueCheck = checkIsTrue[String](_.matches("""\d{7}"""), "address.phone.prefix.invalid")
+val validatePostcode =
+  checkIsTrue[String](_.matches("""\d{5}"""), "address.postcode.invalid")
 
-    val addressCheck = all[Address](
-      checkIsTrue(_.street.nonEmpty, "address.street.empty"),
-      checkIsTrue(_.town.nonEmpty, "address.town.empty"),
-      checkWith(_.postcode, postcodeCheck),
-      checkWith(_.country, countryCheck)
+val validateCountry =
+  checkIsTrue[String](_.isOneOf(Country.codes), "address.country.invalid")
+
+val validatePhoneNumberPrefix =
+  checkIsTrue[String](
+    _.isOneOf(Country.telephonePrefixes),
+    "address.phone.prefix.invalid"
+  )
+
+val validatePhoneNumberValue =
+  checkIsTrue[String](_.matches("""\d{7}"""), "address.phone.prefix.invalid")
+
+val validatePhoneNumber =
+  all[PhoneNumber](
+    checkProp(_.prefix, validatePhoneNumberPrefix),
+    checkProp(_.number, validatePhoneNumberValue)
+  )
+
+val validateEmail = 
+  all[String](
+    checkIsTrue[String](_.contains("@"), "address.email.invalid")
+  )
+
+val validateAddress =
+  all[Address](
+    checkIsTrue(_.street.nonEmpty, "address.street.empty"),
+    checkIsTrue(_.town.nonEmpty, "address.town.empty"),
+    checkProp(_.postcode, validatePostcode),
+    checkProp(_.country, validateCountry)
+  )
+
+val validateContact =
+  all[Contact](
+    checkIsTrue(_.name.nonEmpty, "contact.name.empty"),
+    checkEither(_.address, validateStringNonEmpty("address.manual.empty") , validateAddress),
+    any(
+        checkIfSome(_.email, validateEmail, isValidIfNone = false),
+        all(
+            checkProp(_.phoneNumbers, validateCollectionNonEmpty("address.phoneNumbers.empty")),
+            checkEach(_.phoneNumbers, validatePhoneNumber)
+        )
     )
+  )
 
-    val phoneNumberCheck = all[PhoneNumber](
-      checkWith(_.prefix, phoneNumberPrefixCheck),
-      checkWith(_.number, phoneNumberValueCheck)
-    )
+// TEST
 
-    val contactCheck = all[Contact](
-      checkIsTrue(_.name.nonEmpty, "contact.name.empty"),
-      checkWith(_.address, addressCheck),
-      checkEach(_.phoneNumbers, phoneNumberCheck)
-    )
+val c1 = Contact(
+  name = "Foo Bar",
+  address = Right(Address(
+    street = "Sesame Street 1",
+    town = "Cookieburgh",
+    country = "en",
+    postcode = "00001"
+  )),
+  phoneNumbers = Seq(
+    PhoneNumber("+44", "1234567", "ceo"),
+    PhoneNumber("+41", "7654321", "sales")
+  )
+)
 
-    val c1 = Contact(
-      name = "Foo Bar",
-      address = Address(street = "Sesame Street 1", town = "Cookieburgh", country = "en", postcode = "00001"),
-      phoneNumbers = Seq(PhoneNumber("+44", "1234567", "ceo"), PhoneNumber("+41", "7654321", "sales"))
-    )
+validateContact(c1).isValid
+validateContact(c1).errorsOption
 
-    contactCheck(c1).isValid
+val c2 = Contact(
+  name = "",
+  address =
+    Right(Address(street = "", town = "", country = "ca", postcode = "foobar")),
+  phoneNumbers = Seq(
+    PhoneNumber("+1", "11111111111", "ceo"),
+    PhoneNumber("+01", "00000000", "sales")
+  )
+)
 
-    val c2 = Contact(
-      name = "",
-      address = Address(street = "", town = "", country = "ca", postcode = "foobar"),
-      phoneNumbers = Seq(PhoneNumber("+1", "11111111111", "ceo"), PhoneNumber("+01", "00000000", "sales"))
-    )
+validateContact(c2).isValid
+validateContact(c2).errorsOption
 
-    contactCheck(c2).errorsOption
+val c3 = Contact(
+  name = "Alice",
+  address =
+    Left("1 Home Av. Daisytown CA"),
+  email = Some("alice@home")
+)
+
+validateContact(c3).isValid
+validateContact(c3).errorsOption
+
+val c4 = Contact(
+  name = "",
+  address =
+    Left(""),
+  email = Some("alice.home")
+)
+
+validateContact(c4).isValid
+validateContact(c4).errorsOption
 
 ```
 

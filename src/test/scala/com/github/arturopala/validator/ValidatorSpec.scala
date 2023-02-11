@@ -259,7 +259,7 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
   }
 
   test("nonEmptyStringValidator") {
-    val nonEmptyStringValidator = Validator.checkIsTrue[String](_.nonEmpty, "string must be non-empty")
+    val nonEmptyStringValidator = Validator.validateStringNonEmpty("string must be non-empty")
     assert(nonEmptyStringValidator("").isInvalid)
     assert(nonEmptyStringValidator("a").isValid)
   }
@@ -832,6 +832,21 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
       else
         validate(Foo(string)).errorsSummaryOption == Some("Foo.bar string must be non-empty")
     }
+  }
+
+  test("Validator.checkEither returns Valid only if nested validator returns Valid") {
+    trait A { val foo: Either[String, Int] }
+    val validate: Validate[A] =
+      Validator.checkEither[A, String, Int](
+        _.foo,
+        checkIsTrue[String](_.nonEmpty, "error.empty"),
+        checkIsTrue(_.positive, "error.not.positive")
+      )
+
+    assertEquals(validate(new A { val foo = Right(2) }), Valid)
+    assertEquals(validate(new A { val foo = Left("a") }), Valid)
+    assert(validate(new A { val foo = Right(0) }).isInvalid)
+    assert(validate(new A { val foo = Left("") }).isInvalid)
   }
 
   property("Validator.checkIfSome returns Valid only if nested validator returns Valid") {

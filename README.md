@@ -3,6 +3,7 @@
 [![Scala.js](https://www.scala-js.org/assets/badges/scalajs-1.7.0.svg)](https://www.scala-js.org)
 ![Code size](https://img.shields.io/github/languages/code-size/arturopala/validator)
 ![GitHub](https://img.shields.io/github/license/arturopala/validator)
+![Lift](https://lift.sonatype.com/api/badge/github.com/arturopala/validator)
 
 Validator
 ===
@@ -70,35 +71,35 @@ object Country {
 
 val validatePostcode =
   checkIsTrue[String](_.matches("""\d{5}"""), "address.postcode.invalid")
-// validatePostcode: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12585/1176261504@5d194718
+// validatePostcode: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12590/2086168477@6d68a244
 
 val validateCountry =
   checkIsTrue[String](_.isOneOf(Country.codes), "address.country.invalid")
-// validateCountry: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12585/1176261504@62a2c63
+// validateCountry: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12590/2086168477@1d69fa18
 
 val validatePhoneNumberPrefix =
   checkIsTrue[String](
     _.isOneOf(Country.telephonePrefixes),
     "address.phone.prefix.invalid"
   )
-// validatePhoneNumberPrefix: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12585/1176261504@320d77a6
+// validatePhoneNumberPrefix: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12590/2086168477@2b2c5b73
 
 val validatePhoneNumberValue =
   checkIsTrue[String](_.matches("""\d{7}"""), "address.phone.prefix.invalid")
-// validatePhoneNumberValue: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12585/1176261504@43c44dd7
+// validatePhoneNumberValue: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12590/2086168477@5606d3af
 
 val validatePhoneNumber =
   all[PhoneNumber](
     checkProp(_.prefix, validatePhoneNumberPrefix),
     checkProp(_.number, validatePhoneNumberValue)
   )
-// validatePhoneNumber: PhoneNumber => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12587/1958255792@1d9572fc
+// validatePhoneNumber: PhoneNumber => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12592/802433887@6ec4a6ce
 
 val validateEmail = 
   all[String](
     checkIsTrue[String](_.contains("@"), "address.email.invalid")
   )
-// validateEmail: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12587/1958255792@4a0b0c19
+// validateEmail: Validate[String] = com.github.arturopala.validator.Validator$$$Lambda$12592/802433887@3caf3834
 
 val validateAddress =
   all[Address](
@@ -107,7 +108,7 @@ val validateAddress =
     checkProp(_.postcode, validatePostcode),
     checkProp(_.country, validateCountry)
   )
-// validateAddress: Address => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12587/1958255792@1362e2b9
+// validateAddress: Address => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12592/802433887@75110b11
 
 val validateContact =
   all[Contact](
@@ -121,7 +122,7 @@ val validateContact =
         )
     )
   )
-// validateContact: Contact => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12587/1958255792@7229bff7
+// validateContact: Contact => Either[Error, Unit] = com.github.arturopala.validator.Validator$$$Lambda$12592/802433887@156a35b7
 
 // TEST
 
@@ -247,7 +248,7 @@ import com.github.arturopala.validator.Validator._
 case class E(a: Int, b: String, c: Option[Int], d: Seq[Int], e: Either[String,E], f: Option[Seq[Int]], g: Boolean, h: Option[String])
 
 val divisibleByThree = checkIsTrue[Int](_ % 3 == 0, "must be divisible by three")
-// divisibleByThree: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12585/1176261504@6996596
+// divisibleByThree: Validate[Int] = com.github.arturopala.validator.Validator$$$Lambda$12590/2086168477@3f6d1e80
 
 val validateE: Validate[E] = any[E](
     checkEquals(_.a.toString, _.b, "a must be same as b"),
@@ -277,7 +278,7 @@ val validateE: Validate[E] = any[E](
     checkIfOnlyOneIsTrue(Seq(_.a.inRange(0,10), _.g),"a must not be 0..10 or g must be true"),
     checkIfOnlyOneSetIsTrue[E](Seq(Set(_.a.inRange(0,10), _.g), Set(_.g,_.h.isDefined)),"only (g and a must not be 0..10) or (g and h.isDefined) must be true"),
 )
-// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$12593/947487639@640150ce
+// validateE: Validate[E] = com.github.arturopala.validator.Validator$$$Lambda$12598/990395710@19303d69
 ```
 
 Usage

@@ -11,10 +11,10 @@ This is a micro-library for Scala
 
     "com.github.arturopala" %% "validator" % "@VERSION@"
 
+    //> using "com.github.arturopala::validator:@VERSION@"
+
 Cross-compiles to Scala versions @SUPPORTED_SCALA_VERSIONS@, 
 and ScalaJS version `@SCALA_JS_VERSION@`, and ScalaNative version `@SCALA_NATIVE_VERSION@`.
-
-[Latest API Scaladoc](https://arturopala.github.io/validator/latest/api/com/github/arturopala/validator/index.html)
 
 Motivation
 ---
@@ -37,7 +37,7 @@ Scaladoc
 
 Try in Scastie!
 ---
-<https://scastie.scala-lang.org/arturopala/EsOKlzujSy6cGWrh8qZb9g/31>
+<https://scastie.scala-lang.org/arturopala/EsOKlzujSy6cGWrh8qZb9g/37>
 
 Simple example
 ---
@@ -131,8 +131,7 @@ val c1 = Contact(
   )
 )
 
-validateContact(c1).isValid
-validateContact(c1).errorsOption
+validateContact(c1)
 
 val c2 = Contact(
   name = "",

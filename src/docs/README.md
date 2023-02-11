@@ -3,6 +3,7 @@
 [![Scala.js](https://www.scala-js.org/assets/badges/scalajs-1.7.0.svg)](https://www.scala-js.org)
 ![Code size](https://img.shields.io/github/languages/code-size/arturopala/validator)
 ![GitHub](https://img.shields.io/github/license/arturopala/validator)
+![Lift](https://lift.sonatype.com/api/badge/github.com/arturopala/validator)
 
 Validator
 ===

@@ -86,6 +86,14 @@ object Validator {
   def all[T](constraints: Validate[T]*): Validate[T] =
     apply(constraints: _*)
 
+  /** Conjuction. Succeeds only if all constraints are valid.
+    * Breaks the circuit after first invalid result.
+    */
+  def allWithShortCircuit[T](constraints: Validate[T]*): Validate[T] =
+    (entity: T) =>
+      constraints
+        .foldLeft[Result](Valid)((v, fx) => v.flatMap(_ => fx(entity)))
+
   /** Conjuction. Succeeds only if all constraints are valid, otherwise prepend errorPrefix. */
   def allWithPrefix[T](errorPrefix: String, constraints: Validate[T]*): Validate[T] =
     (entity: T) => all(constraints: _*)(entity).left.map(_.map(e => s"$errorPrefix$e"))
@@ -663,11 +671,7 @@ object Validator {
           case Left(error2) => Left(error1 and error2)
           case Right(())    => Left(error1)
         }
-      case Right(()) =>
-        otherResult match {
-          case Left(error2) => Left(error2)
-          case Right(())    => Right(())
-        }
+      case Right(()) => otherResult
     }
 
     /** Disjunction of errors. */
@@ -675,9 +679,9 @@ object Validator {
       case Left(error1) =>
         otherResult match {
           case Left(error2) => Left(error1 or error2)
-          case Right(())    => Right(())
+          case right        => right
         }
-      case Right(()) => Right(())
+      case right => right
     }
 
     def isValid: Boolean = result.isRight

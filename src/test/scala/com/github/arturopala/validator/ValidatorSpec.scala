@@ -418,6 +418,67 @@ class ValidatorSpec extends munit.ScalaCheckSuite {
     }
   }
 
+  property(
+    "Validator.allWithShortCircuit combines provided validators to verify if all checks passes but breaks short if any failure"
+  ) {
+    def stringStartsWithValidator(prefix: String) =
+      Validator.checkIsTrue[String](_.startsWith(prefix), s"string must start with $prefix")
+
+    def stringEndsWithValidator(suffix: String) =
+      Validator.checkIsTrue[String](_.endsWith(suffix), s"string must end with $suffix")
+
+    Validator
+      .allWithShortCircuit(
+        stringStartsWithValidator("a"),
+        stringStartsWithValidator("b"),
+        stringEndsWithValidator("c"),
+        stringStartsWithValidator("d")
+      )
+      .apply("c")
+      .errorsCount == 1
+
+    Validator
+      .allWithShortCircuit(
+        stringStartsWithValidator("a"),
+        stringEndsWithValidator("c"),
+        stringStartsWithValidator("b"),
+        stringStartsWithValidator("d")
+      )
+      .apply("c")
+      .errorsCount == 1
+
+    Validator
+      .allWithShortCircuit(
+        stringEndsWithValidator("c"),
+        stringEndsWithValidator("a"),
+        stringStartsWithValidator("b"),
+        stringStartsWithValidator("d")
+      )
+      .apply("c")
+      .errorsCount == 1
+
+    Validator
+      .all(
+        stringStartsWithValidator("c"),
+        stringStartsWithValidator("a"),
+        stringEndsWithValidator("b"),
+        stringStartsWithValidator("d")
+      )
+      .apply("c")
+      .errorsCount == 3
+
+    Validator
+      .all(
+        stringEndsWithValidator("c"),
+        stringStartsWithValidator("a"),
+        stringEndsWithValidator("b"),
+        stringStartsWithValidator("d")
+      )
+      .apply("ca")
+      .errorsCount == 4
+
+  }
+
   property("Validator.any combines provided validators to verify if any of the checks passes") {
     val hasDigitValidator = Validator.checkIsTrue[String](_.exists(_.isDigit), "some characters must be digits")
     val hasLowerCaseValidator =

@@ -4,7 +4,7 @@ addSbtPlugin("org.scalameta"     % "sbt-scalafmt"  % "2.5.2")
 addSbtPlugin("org.scoverage"     % "sbt-scoverage" % "2.0.9")
 addSbtPlugin("de.heikoseeberger" % "sbt-header"    % "5.10.0")
 
-addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.5.12")
+addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.9.3")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-site"         % "1.4.1")
 addSbtPlugin("io.kevinlee"      % "sbt-github-pages" % "0.13.0")

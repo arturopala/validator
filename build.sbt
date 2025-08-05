@@ -4,20 +4,17 @@ val developerName = "Artur Opala"
 val developerEmail = "opala.artur@gmail.com"
 val githubUserName = "arturopala"
 
-val scala213 = "2.13.12"
-val scala212 = "2.12.18"
-val scala3 = "3.3.1"
-val scalaJSVersion = "1.14.0"
-val scalaNativeVersion = "0.4.16"
-val mUnitVersion = "1.0.0-M10"
+val scala3 = "3.3.6"
+val scala2 = "2.13.16"
+val scalaJSVersion = "1.19.0"
+val scalaNativeVersion = "0.5.8"
+val mUnitVersion = "1.1.1"
 
-val scala2Versions = List(scala213, scala212)
-val scala3Versions = List(scala3)
-val allScalaVersions = scala2Versions ++ scala3Versions
+val allScalaVersions = List(scala3, scala2)
 
 inThisBuild(
   List(
-    scalaVersion := scala213,
+    scalaVersion := scala3,
     organization := s"com.github.$githubUserName",
     homepage := Some(url(s"https://github.com/$githubUserName/$githubRepoName")),
     licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
@@ -32,17 +29,13 @@ inThisBuild(
     organizationName := developerName,
     startYear := Some(2020),
     licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
-    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.5.0",
-    semanticdbEnabled := true,
-    semanticdbVersion := scalafixSemanticdb.revision,
-    scalafixScalaBinaryVersion := "2.13",
     versionScheme := Some("early-semver")
   )
 )
 
 lazy val sharedSettings = Seq(
   name := githubRepoName,
-  scalaVersion := scala213,
+  scalaVersion := scala3,
   Compile / excludeFilter := NothingFilter,
   unmanagedResources / excludeFilter := NothingFilter,
   (Compile / scalafmtOnCompile) := true,
@@ -54,7 +47,7 @@ lazy val sharedSettings = Seq(
   headerLicense := Some(HeaderLicense.ALv2("2021", developerName)),
   libraryDependencies ++= Seq(
     "org.scalameta" %%% "munit"            % mUnitVersion % Test,
-    "org.scalameta" %%% "munit-scalacheck" % mUnitVersion % Test
+    "org.scalameta" %%% "munit-scalacheck" % "1.1.0"      % Test
   ),
   testFrameworks += new TestFramework("munit.Framework")
 )
@@ -81,8 +74,8 @@ lazy val jSSettings = List(
 )
 
 lazy val nativeSettings = List(
-  scalaVersion := scala213,
-  crossScalaVersions := scala2Versions,
+  scalaVersion := scala3,
+  crossScalaVersions := allScalaVersions,
   libraryDependencies ++= List(
     "org.scala-native" %%% "test-interface" % scalaNativeVersion % Test,
     "org.scala-native" %%% "junit-runtime"  % nativeVersion      % Test
